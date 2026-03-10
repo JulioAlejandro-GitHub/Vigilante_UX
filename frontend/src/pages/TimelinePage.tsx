@@ -13,6 +13,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useStore } from '../store/useStore';
 import { RecognitionEvent, UserType } from '../types';
+import { PersonaTipo, PersonaTipoLabels } from '../constants/dictionaries';
 
 type ZoomLevel = '24h' | '12h' | '6h' | '1h' | '30min';
 
@@ -30,7 +31,7 @@ export default function TimelinePage() {
   const [selectedEvent, setSelectedEvent] = useState<RecognitionEvent | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const categories: UserType[] = ['socio', 'empleado', 'familia', 'desconocido', 'ladron', 'movimiento'];
+  const categories: UserType[] = [PersonaTipo.SOCIO, PersonaTipo.EMPLEADO, PersonaTipo.FAMILIA, PersonaTipo.OTRO, PersonaTipo.LADRON, 'movimiento'];
 
   const config = ZOOM_CONFIG[zoom];
   const totalWidth = 24 * config.pixelsPerHour;
@@ -196,7 +197,7 @@ export default function TimelinePage() {
               key={cat} 
               className={`h-24 flex flex-col justify-center px-4 border-b border-white/5 ${idx % 2 === 0 ? 'bg-white/[0.01]' : ''}`}
             >
-              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{cat}</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{cat === 'movimiento' ? 'Movimiento' : PersonaTipoLabels[cat as typeof PersonaTipo[keyof typeof PersonaTipo]]}</span>
               <span className="text-[9px] text-zinc-700 mt-1">
                 {todayEvents.filter(e => e.userType === cat).length} eventos
               </span>
@@ -251,11 +252,11 @@ export default function TimelinePage() {
                     </div>
                     <div className="text-right">
                       <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md ${
-                        selectedEvent.userType === 'ladron' ? 'bg-red-500/10 text-red-400' :
-                        selectedEvent.userType === 'socio' ? 'bg-emerald-500/10 text-emerald-400' :
+                        selectedEvent.userType === PersonaTipo.LADRON ? 'bg-red-500/10 text-red-400' :
+                        selectedEvent.userType === PersonaTipo.SOCIO ? 'bg-emerald-500/10 text-emerald-400' :
                         'bg-zinc-500/10 text-zinc-400'
                       }`}>
-                        {selectedEvent.userType}
+                        {selectedEvent.userType === 'movimiento' ? 'Movimiento' : PersonaTipoLabels[selectedEvent.userType as typeof PersonaTipo[keyof typeof PersonaTipo]]}
                       </span>
                       <p className="text-xs font-mono text-zinc-500 mt-2">
                         {(selectedEvent.confidence * 100).toFixed(1)}% confianza

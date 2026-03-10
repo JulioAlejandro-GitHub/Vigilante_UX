@@ -10,6 +10,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { UserType } from '../types';
+import { PersonaTipo, PersonaTipoLabels } from '../constants/dictionaries';
 
 export default function SettingsPage() {
   const { events, deleteEvent, updateEventUserType } = useStore();
@@ -90,11 +91,11 @@ export default function SettingsPage() {
                       onChange={(e) => updateEventUserType(event.id, e.target.value as UserType)}
                       className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-zinc-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     >
-                      <option value="socio">Socio</option>
-                      <option value="empleado">Empleado</option>
-                      <option value="familia">Familia</option>
-                      <option value="desconocido">Desconocido</option>
-                      <option value="ladron">Ladrón</option>
+                      <option value={PersonaTipo.SOCIO}>{PersonaTipoLabels[PersonaTipo.SOCIO]}</option>
+                      <option value={PersonaTipo.EMPLEADO}>{PersonaTipoLabels[PersonaTipo.EMPLEADO]}</option>
+                      <option value={PersonaTipo.FAMILIA}>{PersonaTipoLabels[PersonaTipo.FAMILIA]}</option>
+                      <option value={PersonaTipo.OTRO}>{PersonaTipoLabels[PersonaTipo.OTRO]}</option>
+                      <option value={PersonaTipo.LADRON}>{PersonaTipoLabels[PersonaTipo.LADRON]}</option>
                     </select>
                   </td>
                   <td className="px-6 py-4">

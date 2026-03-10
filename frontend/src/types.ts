@@ -1,4 +1,6 @@
-export type UserType = 'socio' | 'empleado' | 'familia' | 'desconocido' | 'ladron' | 'movimiento';
+import { PersonaTipo } from './constants/dictionaries';
+
+export type UserType = typeof PersonaTipo[keyof typeof PersonaTipo] | 'movimiento';
 
 export interface RecognitionEvent {
   id: string;

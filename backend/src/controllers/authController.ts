@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from '../config/database';
+import { OperadorEstado } from '../constants/dictionaries';
 
 interface OperadorRow {
   operador_id: number;
@@ -35,7 +36,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     const operador = rows[0] as OperadorRow;
 
-    if (operador.estado !== 'activo') {
+    if (operador.estado !== OperadorEstado.ACTIVO) {
       res.status(403).json({ error: 'Su cuenta se encuentra inactiva. Contacte al administrador.' });
       return;
     }

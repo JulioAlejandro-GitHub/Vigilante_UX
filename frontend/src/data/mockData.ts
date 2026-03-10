@@ -1,4 +1,5 @@
 import { RecognitionEvent, CameraStats } from '../types';
+import { PersonaTipo } from '../constants/dictionaries';
 
 const cameras = [
   'Acceso principal',
@@ -8,20 +9,20 @@ const cameras = [
   'Pasillo norte'
 ];
 
-const userTypes: ('socio' | 'empleado' | 'familia' | 'desconocido' | 'ladron')[] = [
-  'socio',
-  'empleado',
-  'familia',
-  'desconocido',
-  'ladron'
+const userTypes: (typeof PersonaTipo[keyof typeof PersonaTipo])[] = [
+  PersonaTipo.SOCIO,
+  PersonaTipo.EMPLEADO,
+  PersonaTipo.FAMILIA,
+  PersonaTipo.OTRO,
+  PersonaTipo.LADRON
 ];
 
 const names = {
-  socio: ['Carlos Ruiz', 'Elena Gómez', 'Marco Polo', 'Ana Silva'],
-  empleado: ['Juan Pérez', 'Marta López', 'Roberto Díaz', 'Sofía Torres'],
-  familia: ['Hijo 1', 'Esposa', 'Abuelo'],
-  desconocido: ['Sujeto A', 'Sujeto B', 'Sujeto C'],
-  ladron: ['Sospechoso 01', 'Sospechoso 02']
+  [PersonaTipo.SOCIO]: ['Carlos Ruiz', 'Elena Gómez', 'Marco Polo', 'Ana Silva'],
+  [PersonaTipo.EMPLEADO]: ['Juan Pérez', 'Marta López', 'Roberto Díaz', 'Sofía Torres'],
+  [PersonaTipo.FAMILIA]: ['Hijo 1', 'Esposa', 'Abuelo'],
+  [PersonaTipo.OTRO]: ['Sujeto A', 'Sujeto B', 'Sujeto C'],
+  [PersonaTipo.LADRON]: ['Sospechoso 01', 'Sospechoso 02']
 };
 
 export const mockCameras: CameraStats[] = cameras.map((name, i) => ({

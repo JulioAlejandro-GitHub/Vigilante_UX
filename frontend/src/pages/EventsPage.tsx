@@ -15,6 +15,7 @@ import {
 import { useStore } from '../store/useStore';
 import { RecognitionEvent, UserType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { PersonaTipo, PersonaTipoLabels } from '../constants/dictionaries';
 
 export default function EventsPage() {
   const { events } = useStore();
@@ -54,7 +55,7 @@ export default function EventsPage() {
             />
           </div>
           <div className="flex bg-[#111111] border border-white/5 rounded-xl p-1 overflow-x-auto scrollbar-hide">
-            {['all', 'socio', 'empleado', 'familia', 'desconocido', 'ladron'].map((type) => (
+            {['all', PersonaTipo.SOCIO, PersonaTipo.EMPLEADO, PersonaTipo.FAMILIA, PersonaTipo.OTRO, PersonaTipo.LADRON].map((type) => (
               <button
                 key={type}
                 onClick={() => setFilterType(type as any)}
@@ -62,7 +63,7 @@ export default function EventsPage() {
                   filterType === type ? 'bg-emerald-500 text-black' : 'text-zinc-500 hover:text-zinc-300'
                 }`}
               >
-                {type}
+                {type === 'all' ? 'Todos' : PersonaTipoLabels[type as typeof PersonaTipo[keyof typeof PersonaTipo]]}
               </button>
             ))}
           </div>
@@ -90,11 +91,12 @@ export default function EventsPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
                 <div className="absolute top-3 left-3">
                   <span className={`text-[9px] font-bold uppercase px-2 py-1 rounded-md backdrop-blur-md ${
-                    event.userType === 'ladron' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                    event.userType === 'socio' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                    event.userType === PersonaTipo.LADRON ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                    event.userType === PersonaTipo.SOCIO ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                    event.userType === 'movimiento' ? 'bg-amber-500/10 text-amber-400' :
                     'bg-white/10 text-white border border-white/20'
                   }`}>
-                    {event.userType}
+                    {event.userType === 'movimiento' ? 'Movimiento' : PersonaTipoLabels[event.userType as typeof PersonaTipo[keyof typeof PersonaTipo]]}
                   </span>
                 </div>
                 <div className="absolute bottom-3 left-3 right-3">
@@ -198,11 +200,12 @@ export default function EventsPage() {
                       <h3 className="text-xl font-bold text-white">{selectedEvent.name || 'Desconocido'}</h3>
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${
-                          selectedEvent.userType === 'ladron' ? 'bg-red-500/10 text-red-400' :
-                          selectedEvent.userType === 'socio' ? 'bg-emerald-500/10 text-emerald-400' :
+                          selectedEvent.userType === PersonaTipo.LADRON ? 'bg-red-500/10 text-red-400' :
+                          selectedEvent.userType === PersonaTipo.SOCIO ? 'bg-emerald-500/10 text-emerald-400' :
+                          selectedEvent.userType === 'movimiento' ? 'bg-amber-500/10 text-amber-400' :
                           'bg-zinc-500/10 text-zinc-400'
                         }`}>
-                          {selectedEvent.userType}
+                          {selectedEvent.userType === 'movimiento' ? 'Movimiento' : PersonaTipoLabels[selectedEvent.userType as typeof PersonaTipo[keyof typeof PersonaTipo]]}
                         </span>
                         <span className="text-xs font-mono text-zinc-500">{(selectedEvent.confidence * 100).toFixed(1)}% confianza</span>
                       </div>

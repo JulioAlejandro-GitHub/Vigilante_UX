@@ -1,10 +1,11 @@
 import { create } from 'zustand';
+import { OperadorRol } from '../constants/dictionaries';
 
 interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'operator';
+  role: typeof OperadorRol[keyof typeof OperadorRol];
 }
 
 interface AuthState {
@@ -71,7 +72,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         id: '2',
         name: 'Operador de Google',
         email: 'operador@google.com',
-        role: 'operator',
+        role: OperadorRol.OPERADOR,
       },
       isLoading: false,
       error: null,

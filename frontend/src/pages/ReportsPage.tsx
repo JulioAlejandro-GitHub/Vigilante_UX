@@ -10,13 +10,14 @@ import {
   Activity
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { PersonaTipo } from '../constants/dictionaries';
 
 export default function ReportsPage() {
   const { events, cameras } = useStore();
 
   const stats = [
     { label: 'Total Reconocimientos', value: events.length, icon: Users, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-    { label: 'Alertas Críticas', value: events.filter(e => e.userType === 'ladron').length, icon: AlertTriangle, color: 'text-red-400', bg: 'bg-red-400/10' },
+    { label: 'Alertas Críticas', value: events.filter(e => e.userType === PersonaTipo.LADRON).length, icon: AlertTriangle, color: 'text-red-400', bg: 'bg-red-400/10' },
     { label: 'Cámaras Analizadas', value: cameras.length, icon: Camera, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
     { label: 'Eventos de Movimiento', value: events.filter(e => e.userType === 'movimiento').length, icon: Activity, color: 'text-amber-400', bg: 'bg-amber-400/10' },
   ];

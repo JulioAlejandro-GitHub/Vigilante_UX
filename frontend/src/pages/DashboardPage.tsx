@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { motion } from 'motion/react';
+import { PersonaTipo, PersonaTipoLabels } from '../constants/dictionaries';
 
 export default function DashboardPage() {
   const { cameras, events } = useStore();
@@ -15,8 +16,8 @@ export default function DashboardPage() {
 
   // Stats filtering based on mock data events
   const recognitions48h = events.filter(e => e.userType !== 'movimiento').length;
-  const unknowns48h = events.filter(e => e.userType === 'desconocido').length;
-  const thieves48h = events.filter(e => e.userType === 'ladron').length;
+  const unknowns48h = events.filter(e => e.userType === PersonaTipo.OTRO).length; // Map 'desconocido' to PersonaTipo.OTRO based on mockData.ts
+  const thieves48h = events.filter(e => e.userType === PersonaTipo.LADRON).length;
 
   const recentEvents = events.slice(0, 8);
   
@@ -99,12 +100,12 @@ export default function DashboardPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md ${
-                          event.userType === 'ladron' ? 'bg-red-500/10 text-red-400' :
-                          event.userType === 'socio' ? 'bg-emerald-500/10 text-emerald-400' :
+                          event.userType === PersonaTipo.LADRON ? 'bg-red-500/10 text-red-400' :
+                          event.userType === PersonaTipo.SOCIO ? 'bg-emerald-500/10 text-emerald-400' :
                           event.userType === 'movimiento' ? 'bg-amber-500/10 text-amber-400' :
                           'bg-zinc-500/10 text-zinc-400'
                         }`}>
-                          {event.userType}
+                          {event.userType === 'movimiento' ? 'Movimiento' : PersonaTipoLabels[event.userType as typeof PersonaTipo[keyof typeof PersonaTipo]]}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-zinc-400">{event.camera}</td>
