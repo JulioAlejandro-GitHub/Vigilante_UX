@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
@@ -7,23 +8,23 @@ import {
   ChevronLeft, 
   ChevronRight,
   Shield,
-  Menu
+  Camera,
+  FileText,
+  UserCircle
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
-interface SidebarProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-}
-
-export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
+export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'events', label: 'Eventos', icon: Users },
-    { id: 'timeline', label: 'Timeline Forense', icon: History },
-    { id: 'admin', label: 'Administración', icon: Settings },
+    { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/cameras', label: 'Cámaras', icon: Camera },
+    { path: '/events', label: 'Eventos', icon: Users },
+    { path: '/timeline', label: 'Timeline Forense', icon: History },
+    { path: '/profiles', label: 'Personas', icon: UserCircle },
+    { path: '/reports', label: 'Reportes', icon: FileText },
+    { path: '/settings', label: 'Configuración', icon: Settings },
   ];
 
   return (
@@ -49,26 +50,30 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
 
       <nav className="flex-1 px-3 space-y-1 mt-4">
         {menuItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setActiveTab(item.id)}
-            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group ${
-              activeTab === item.id 
+          <NavLink
+            key={item.path}
+            to={item.path}
+            className={({ isActive }) => `w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group ${
+              isActive
                 ? 'bg-white/10 text-white' 
                 : 'text-zinc-500 hover:bg-white/5 hover:text-zinc-300'
             }`}
           >
-            <item.icon className={`w-5 h-5 shrink-0 ${activeTab === item.id ? 'text-emerald-400' : ''}`} />
-            {!isCollapsed && (
-              <span className="font-medium text-sm">{item.label}</span>
+            {({ isActive }) => (
+              <>
+                <item.icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-emerald-400' : ''}`} />
+                {!isCollapsed && (
+                  <span className="font-medium text-sm">{item.label}</span>
+                )}
+                {isActive && !isCollapsed && (
+                  <motion.div
+                    layoutId="active-pill"
+                    className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-500"
+                  />
+                )}
+              </>
             )}
-            {activeTab === item.id && !isCollapsed && (
-              <motion.div 
-                layoutId="active-pill"
-                className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-500"
-              />
-            )}
-          </button>
+          </NavLink>
         ))}
       </nav>
 

@@ -1,23 +1,18 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Calendar, 
-  Clock, 
-  Camera, 
-  Search, 
-  ZoomIn, 
-  ZoomOut,
   ChevronLeft,
   ChevronRight,
   X,
   History,
-  Info,
   ExternalLink,
   Trash2,
-  Edit3
+  Edit3,
+  Camera
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { mockEvents, mockCameras } from '../../data/mockData';
-import { RecognitionEvent, UserType } from '../../types';
+import { useStore } from '../store/useStore';
+import { RecognitionEvent, UserType } from '../types';
 
 type ZoomLevel = '24h' | '12h' | '6h' | '1h' | '30min';
 
@@ -29,10 +24,10 @@ const ZOOM_CONFIG: Record<ZoomLevel, { hours: number; pixelsPerHour: number }> =
   '30min': { hours: 0.5, pixelsPerHour: 4800 },
 };
 
-export default function ForensicTimeline() {
+export default function TimelinePage() {
+  const { events } = useStore();
   const [zoom, setZoom] = useState<ZoomLevel>('6h');
   const [selectedEvent, setSelectedEvent] = useState<RecognitionEvent | null>(null);
-  const [currentTime, setCurrentTime] = useState(new Date());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const categories: UserType[] = ['socio', 'empleado', 'familia', 'desconocido', 'ladron', 'movimiento'];
@@ -40,22 +35,21 @@ export default function ForensicTimeline() {
   const config = ZOOM_CONFIG[zoom];
   const totalWidth = 24 * config.pixelsPerHour;
 
-  // Filter events for the current day (mocking for today)
   const todayEvents = useMemo(() => {
-    return mockEvents.filter(e => {
+    return events.filter(e => {
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
-      return e.timestamp >= startOfDay;
+      return new Date(e.timestamp) >= startOfDay;
     });
-  }, []);
+  }, [events]);
 
   const getPosition = (date: Date) => {
-    const hours = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600;
+    const d = new Date(date);
+    const hours = d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
     return hours * config.pixelsPerHour;
   };
 
   useEffect(() => {
-    // Center on current time initially
     if (scrollContainerRef.current) {
       const pos = getPosition(new Date());
       scrollContainerRef.current.scrollLeft = pos - scrollContainerRef.current.clientWidth / 2;
@@ -95,7 +89,7 @@ export default function ForensicTimeline() {
           </button>
           <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/5">
             <Calendar className="w-4 h-4 text-emerald-500" />
-            <span className="text-xs font-bold text-white">10 Mar 2026</span>
+            <span className="text-xs font-bold text-white">{new Date().toLocaleDateString()}</span>
           </div>
           <button className="p-2 text-zinc-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
             <ChevronRight className="w-5 h-5" />
@@ -176,7 +170,7 @@ export default function ForensicTimeline() {
                             referrerPolicy="no-referrer"
                           />
                           <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 opacity-0 group-hover/item:opacity-100 transition-opacity bg-black/80 px-2 py-0.5 rounded text-[9px] font-bold text-white whitespace-nowrap z-50 border border-white/10">
-                            {event.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </div>
                       )}
@@ -273,45 +267,49 @@ export default function ForensicTimeline() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Fecha</span>
-                    <span className="text-sm text-white font-medium">10 Mar 2026</span>
+                    <span className="text-sm text-white font-medium">{new Date(selectedEvent.timestamp).toLocaleDateString()}</span>
                   </div>
                   <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Hora</span>
                     <span className="text-sm text-white font-medium">
-                      {selectedEvent.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      {new Date(selectedEvent.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </span>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Historial de Avistamientos</h4>
-                  <div className="space-y-3">
-                    {selectedEvent.history?.map((h, i) => (
-                      <div key={i} className="flex items-center gap-4 p-3 bg-white/[0.02] rounded-xl border border-white/5">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                        <div className="flex-1">
-                          <p className="text-sm text-white font-medium">{h.camera}</p>
-                          <p className="text-xs text-zinc-500">{h.timestamp.toLocaleTimeString()}</p>
+                {selectedEvent.history && (
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Historial de Avistamientos</h4>
+                    <div className="space-y-3">
+                      {selectedEvent.history.map((h, i) => (
+                        <div key={i} className="flex items-center gap-4 p-3 bg-white/[0.02] rounded-xl border border-white/5">
+                          <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                          <div className="flex-1">
+                            <p className="text-sm text-white font-medium">{h.camera}</p>
+                            <p className="text-xs text-zinc-500">{new Date(h.timestamp).toLocaleTimeString()}</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="space-y-4">
-                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Galería de Capturas</h4>
-                  <div className="grid grid-cols-3 gap-2">
-                    {selectedEvent.gallery?.map((img, i) => (
-                      <img 
-                        key={i} 
-                        src={img} 
-                        className="aspect-square rounded-lg object-cover border border-white/10 hover:border-emerald-500/50 cursor-pointer transition-all" 
-                        alt=""
-                        referrerPolicy="no-referrer"
-                      />
-                    ))}
+                {selectedEvent.gallery && (
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Galería de Capturas</h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      {selectedEvent.gallery.map((img, i) => (
+                        <img
+                          key={i}
+                          src={img}
+                          className="aspect-square rounded-lg object-cover border border-white/10 hover:border-emerald-500/50 cursor-pointer transition-all"
+                          alt=""
+                          referrerPolicy="no-referrer"
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               <div className="p-6 border-t border-white/5 grid grid-cols-2 gap-3">

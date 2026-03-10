@@ -5,23 +5,28 @@ import {
   AlertTriangle, 
   UserX, 
   ShieldAlert,
-  ArrowUpRight,
-  ArrowDownRight
 } from 'lucide-react';
-import { mockEvents, mockCameras } from '../../data/mockData';
+import { useStore } from '../store/useStore';
 import { motion } from 'motion/react';
 
-export default function Dashboard() {
-  const activeCameras = mockCameras.filter(c => c.status === 'active').length;
-  const recentEvents = mockEvents.slice(0, 8);
+export default function DashboardPage() {
+  const { cameras, events } = useStore();
+  const activeCameras = cameras.filter(c => c.status === 'active').length;
+
+  // Stats filtering based on mock data events
+  const recognitions48h = events.filter(e => e.userType !== 'movimiento').length;
+  const unknowns48h = events.filter(e => e.userType === 'desconocido').length;
+  const thieves48h = events.filter(e => e.userType === 'ladron').length;
+
+  const recentEvents = events.slice(0, 8);
   
   const stats = [
-    { label: 'Cámaras Totales', value: mockCameras.length, icon: Camera, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+    { label: 'Cámaras Totales', value: cameras.length, icon: Camera, color: 'text-blue-400', bg: 'bg-blue-400/10' },
     { label: 'Activas', value: activeCameras, icon: Activity, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-    { label: 'Inactivas', value: mockCameras.length - activeCameras, icon: AlertTriangle, color: 'text-amber-400', bg: 'bg-amber-400/10' },
-    { label: 'Reconocimientos (48h)', value: 142, icon: Activity, color: 'text-purple-400', bg: 'bg-purple-400/10' },
-    { label: 'Desconocidos (48h)', value: 28, icon: UserX, color: 'text-zinc-400', bg: 'bg-zinc-400/10' },
-    { label: 'Ladrones (48h)', value: 3, icon: ShieldAlert, color: 'text-red-400', bg: 'bg-red-400/10' },
+    { label: 'Inactivas', value: cameras.length - activeCameras, icon: AlertTriangle, color: 'text-amber-400', bg: 'bg-amber-400/10' },
+    { label: 'Reconocimientos (48h)', value: recognitions48h, icon: Activity, color: 'text-purple-400', bg: 'bg-purple-400/10' },
+    { label: 'Desconocidos (48h)', value: unknowns48h, icon: UserX, color: 'text-zinc-400', bg: 'bg-zinc-400/10' },
+    { label: 'Ladrones (48h)', value: thieves48h, icon: ShieldAlert, color: 'text-red-400', bg: 'bg-red-400/10' },
   ];
 
   return (
@@ -64,7 +69,7 @@ export default function Dashboard() {
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-bottom border-white/5 text-[11px] uppercase tracking-wider text-zinc-500 font-bold">
+                  <tr className="border-b border-white/5 text-[11px] uppercase tracking-wider text-zinc-500 font-bold">
                     <th className="px-6 py-4">Sujeto</th>
                     <th className="px-6 py-4">Tipo</th>
                     <th className="px-6 py-4">Cámara</th>
@@ -77,12 +82,18 @@ export default function Dashboard() {
                     <tr key={event.id} className="hover:bg-white/[0.02] transition-colors group cursor-pointer">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <img 
-                            src={event.thumbnail} 
-                            className="w-8 h-8 rounded-lg object-cover border border-white/10" 
-                            alt=""
-                            referrerPolicy="no-referrer"
-                          />
+                          {event.thumbnail ? (
+                            <img
+                              src={event.thumbnail}
+                              className="w-8 h-8 rounded-lg object-cover border border-white/10"
+                              alt=""
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-lg bg-white/10 border border-white/5 flex items-center justify-center">
+                              <Activity className="w-4 h-4 text-zinc-500" />
+                            </div>
+                          )}
                           <span className="text-sm font-medium text-white">{event.name || 'Desconocido'}</span>
                         </div>
                       </td>
@@ -90,6 +101,7 @@ export default function Dashboard() {
                         <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md ${
                           event.userType === 'ladron' ? 'bg-red-500/10 text-red-400' :
                           event.userType === 'socio' ? 'bg-emerald-500/10 text-emerald-400' :
+                          event.userType === 'movimiento' ? 'bg-amber-500/10 text-amber-400' :
                           'bg-zinc-500/10 text-zinc-400'
                         }`}>
                           {event.userType}
@@ -97,7 +109,7 @@ export default function Dashboard() {
                       </td>
                       <td className="px-6 py-4 text-sm text-zinc-400">{event.camera}</td>
                       <td className="px-6 py-4 text-sm text-zinc-500">
-                        {event.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">

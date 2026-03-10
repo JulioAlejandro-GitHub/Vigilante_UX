@@ -1,20 +1,40 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Vigilante
 
-# Run and deploy your AI Studio app
+Vigilante es un frontend profesional y usable para sistemas de videovigilancia, diseñado con foco en monitoreo, eventos de reconocimiento, investigación forense, timeline visual y operación diaria.
 
-This contains everything you need to run your app locally.
+## Stack
+- React 19
+- Vite
+- TypeScript
+- Tailwind CSS
+- React Router
+- Zustand
+- Lucide React
+- Framer Motion
 
-View your app in AI Studio: https://ai.studio/apps/4788a282-caaf-4c44-8aa3-443a6450f816
+## Requisitos Previos
+- Node.js (v18+)
+- npm
 
-## Run Locally
+## Instalación y Ejecución Local
 
-**Prerequisites:**  Node.js
+1. Instala las dependencias:
+   ```bash
+   npm install
+   ```
 
+2. Ejecuta el servidor de desarrollo:
+   ```bash
+   npm run dev
+   ```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+3. Abre tu navegador en la URL que indique la consola (por defecto `http://localhost:3000`).
+
+## Características
+- **Dashboard:** Tarjetas y bloques visuales para cámaras activas/offline, reconocimientos recientes, alertas y actividad.
+- **Cámaras:** Grilla de cámaras con estado online/offline e información.
+- **Eventos:** Listado visual de eventos con imagen de rostro, fecha, hora, cámara, tipo de usuario y nivel de confianza.
+- **Timeline Forense:** Vista crítica para la investigación forense con lectura clara del tiempo, zoom por rango temporal, scroll fluido y capacidades de filtrado.
+- **Perfiles:** Directorio de identidades conocidas y recurrentes.
+- **Reportes:** Tarjetas de resumen para análisis estadístico.
+- **Configuración:** Administración de eventos y corrección de etiquetas de usuario, conectados globalmente a la aplicación.
