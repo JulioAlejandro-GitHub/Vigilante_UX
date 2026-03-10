@@ -46,7 +46,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const secretKey = process.env.SECRETORPRIVATEKEY || '4e1b54cf-a56e-46a1-8d26-86cdc873ce69';
+    const secretKey = process.env.SECRETORPRIVATEKEY || '';
     const token = jwt.sign(
       { id: operador.operador_id, email: operador.email, rol: operador.rol },
       secretKey,
