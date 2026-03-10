@@ -297,8 +297,166 @@ CREATE TABLE `recognition_engine_result` (
     ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+
+
 -- =========================================================
--- 6) ALERTAS
+-- 6) CONFIGURACION FUNCIONAL DEL SISTEMA
+--    Flexible, extensible y separada de secretos (.env / credenciales).
+--    Permite parámetros globales, por sucursal, por cámara y por canal.
+-- =========================================================
+
+CREATE TABLE `config_scope_type` (
+  `scope_type_id` TINYINT NOT NULL AUTO_INCREMENT,
+  `codigo` VARCHAR(30) NOT NULL,
+  `nombre` VARCHAR(80) NOT NULL,
+  `descripcion` VARCHAR(255) DEFAULT NULL,
+  PRIMARY KEY (`scope_type_id`),
+  UNIQUE KEY `uq_config_scope_type_codigo` (`codigo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `config_group` (
+  `config_group_id` INT NOT NULL AUTO_INCREMENT,
+  `codigo` VARCHAR(60) NOT NULL,
+  `nombre` VARCHAR(120) NOT NULL,
+  `descripcion` VARCHAR(255) DEFAULT NULL,
+  `sort_order` INT NOT NULL DEFAULT 100,
+  `estado` ENUM('activo','inactivo') NOT NULL DEFAULT 'activo',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`config_group_id`),
+  UNIQUE KEY `uq_config_group_codigo` (`codigo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `config_definition` (
+  `config_definition_id` BIGINT NOT NULL AUTO_INCREMENT,
+  `config_group_id` INT NOT NULL,
+  `codigo` VARCHAR(100) NOT NULL,
+  `nombre` VARCHAR(150) NOT NULL,
+  `descripcion` VARCHAR(500) DEFAULT NULL,
+  `data_type` ENUM('string','text','int','decimal','boolean','json','enum','time','datetime') NOT NULL,
+  `enum_options` JSON DEFAULT NULL,
+  `default_value_string` TEXT DEFAULT NULL,
+  `default_value_json` JSON DEFAULT NULL,
+  `is_required` TINYINT(1) NOT NULL DEFAULT 0,
+  `is_array` TINYINT(1) NOT NULL DEFAULT 0,
+  `is_secret` TINYINT(1) NOT NULL DEFAULT 0,
+  `allow_global` TINYINT(1) NOT NULL DEFAULT 1,
+  `allow_local` TINYINT(1) NOT NULL DEFAULT 1,
+  `allow_camera` TINYINT(1) NOT NULL DEFAULT 1,
+  `allow_channel` TINYINT(1) NOT NULL DEFAULT 1,
+  `allow_schedule` TINYINT(1) NOT NULL DEFAULT 0,
+  `validation_regex` VARCHAR(255) DEFAULT NULL,
+  `sort_order` INT NOT NULL DEFAULT 100,
+  `estado` ENUM('activo','inactivo') NOT NULL DEFAULT 'activo',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`config_definition_id`),
+  UNIQUE KEY `uq_config_definition_codigo` (`codigo`),
+  KEY `idx_config_definition_group_estado` (`config_group_id`,`estado`),
+  CONSTRAINT `fk_config_definition_group`
+    FOREIGN KEY (`config_group_id`) REFERENCES `config_group` (`config_group_id`)
+    ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `alert_channel` (
+  `alert_channel_id` INT NOT NULL AUTO_INCREMENT,
+  `codigo` VARCHAR(30) NOT NULL,
+  `nombre` VARCHAR(80) NOT NULL,
+  `descripcion` VARCHAR(255) DEFAULT NULL,
+  `estado` ENUM('activo','inactivo') NOT NULL DEFAULT 'activo',
+  PRIMARY KEY (`alert_channel_id`),
+  UNIQUE KEY `uq_alert_channel_codigo` (`codigo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+
+CREATE TABLE `config_value` (
+  `config_value_id` BIGINT NOT NULL AUTO_INCREMENT,
+  `config_definition_id` BIGINT NOT NULL,
+  `scope_type_id` TINYINT NOT NULL,
+  `scope_ref_id` BIGINT DEFAULT NULL,
+  `alert_channel_id` INT DEFAULT NULL,
+  `schedule_name` VARCHAR(100) DEFAULT NULL,
+  `schedule_days_mask` VARCHAR(20) DEFAULT NULL,
+  `schedule_start_time` TIME DEFAULT NULL,
+  `schedule_end_time` TIME DEFAULT NULL,
+  `value_string` TEXT DEFAULT NULL,
+  `value_json` JSON DEFAULT NULL,
+  `enabled` TINYINT(1) NOT NULL DEFAULT 1,
+  `priority` INT NOT NULL DEFAULT 100,
+  `notes` VARCHAR(255) DEFAULT NULL,
+  `updated_by_operador_id` INT DEFAULT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`config_value_id`),
+  UNIQUE KEY `uq_config_value_scope` (`config_definition_id`,`scope_type_id`,`scope_ref_id`,`alert_channel_id`,`schedule_name`),
+  KEY `idx_config_value_scope_lookup` (`scope_type_id`,`scope_ref_id`,`enabled`),
+  KEY `idx_config_value_channel` (`alert_channel_id`,`enabled`),
+  KEY `idx_config_value_schedule` (`schedule_start_time`,`schedule_end_time`),
+  CONSTRAINT `fk_config_value_definition`
+    FOREIGN KEY (`config_definition_id`) REFERENCES `config_definition` (`config_definition_id`)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+CONSTRAINT `fk_config_value_scope_type`
+  FOREIGN KEY (`scope_type_id`) REFERENCES `config_scope_type` (`scope_type_id`)
+  ON UPDATE RESTRICT ON DELETE RESTRICT,
+  CONSTRAINT `fk_config_value_channel`
+    FOREIGN KEY (`alert_channel_id`) REFERENCES `alert_channel` (`alert_channel_id`)
+    ON UPDATE CASCADE ON DELETE SET NULL,
+  CONSTRAINT `fk_config_value_operador`
+    FOREIGN KEY (`updated_by_operador_id`) REFERENCES `operador` (`operador_id`)
+    ON UPDATE CASCADE ON DELETE SET NULL,
+  CONSTRAINT `chk_config_scope_ref_required`
+    CHECK (
+      (`scope_type_id` = 1 AND `scope_ref_id` IS NULL) OR
+      (`scope_type_id` IN (2,3,4) AND `scope_ref_id` IS NOT NULL)
+    )
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+
+
+
+
+
+-- Reglas de alertas configurables para múltiples canales y horarios.
+CREATE TABLE `alert_rule` (
+  `alert_rule_id` BIGINT NOT NULL AUTO_INCREMENT,
+  `local_id` INT DEFAULT NULL,
+  `camara_id` INT DEFAULT NULL,
+  `nombre` VARCHAR(120) NOT NULL,
+  `descripcion` VARCHAR(255) DEFAULT NULL,
+  `evento_tipo` ENUM('ladron','desconocido','identificado','rechazado','revisar','cualquier_reconocimiento') NOT NULL,
+  `alert_channel_id` INT NOT NULL,
+  `mensaje_template` TEXT DEFAULT NULL,
+  `only_in_schedule` TINYINT(1) NOT NULL DEFAULT 0,
+  `days_mask` VARCHAR(20) DEFAULT NULL,
+  `start_time` TIME DEFAULT NULL,
+  `end_time` TIME DEFAULT NULL,
+  `cooldown_seconds` INT NOT NULL DEFAULT 0,
+  `enabled` TINYINT(1) NOT NULL DEFAULT 1,
+  `priority` INT NOT NULL DEFAULT 100,
+  `created_by_operador_id` INT DEFAULT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`alert_rule_id`),
+  KEY `idx_alert_rule_lookup` (`enabled`,`evento_tipo`,`camara_id`,`local_id`),
+  KEY `idx_alert_rule_channel` (`alert_channel_id`,`enabled`),
+  CONSTRAINT `fk_alert_rule_local`
+    FOREIGN KEY (`local_id`) REFERENCES `sucursal` (`local_id`)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT `fk_alert_rule_camara`
+    FOREIGN KEY (`camara_id`) REFERENCES `camara` (`camara_id`)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT `fk_alert_rule_channel`
+    FOREIGN KEY (`alert_channel_id`) REFERENCES `alert_channel` (`alert_channel_id`)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT `fk_alert_rule_operador`
+    FOREIGN KEY (`created_by_operador_id`) REFERENCES `operador` (`operador_id`)
+    ON UPDATE CASCADE ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================================================
+-- 7) ALERTAS
 --    Ahora la alerta se asocia a una cara/evento de reconocimiento,
 --    no a un "acceso" ficticio.
 -- =========================================================
@@ -306,7 +464,7 @@ CREATE TABLE `recognition_engine_result` (
 CREATE TABLE `alerta_enviada` (
   `alerta_enviada_id` BIGINT NOT NULL AUTO_INCREMENT,
   `recognition_face_id` BIGINT NOT NULL,
-  `canal` ENUM('telegram','email','webhook','sms','otro') NOT NULL DEFAULT 'telegram',
+  `canal` ENUM('whatsapp','telegram','email','webhook','sms','otro') NOT NULL DEFAULT 'telegram',
   `text_alert` JSON DEFAULT NULL,
   `fecha_alerta` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `estado_envio` ENUM('pendiente','enviado','error') NOT NULL DEFAULT 'enviado',
@@ -319,7 +477,7 @@ CREATE TABLE `alerta_enviada` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =========================================================
--- 7) VISTAS ÚTILES PARA REPORTERÍA / UX
+-- 8) VISTAS ÚTILES PARA REPORTERÍA / UX
 -- =========================================================
 
 CREATE OR REPLACE VIEW `vw_recognition_timeline` AS
@@ -359,8 +517,31 @@ SELECT
   rer.created_at
 FROM recognition_engine_result rer;
 
+
+
+CREATE OR REPLACE VIEW `vw_config_effective` AS
+SELECT
+  cd.codigo AS config_codigo,
+  cd.nombre AS config_nombre,
+  cst.codigo AS scope_tipo,
+  cv.scope_ref_id,
+  ac.codigo AS alert_channel_codigo,
+  cv.schedule_name,
+  cv.schedule_days_mask,
+  cv.schedule_start_time,
+  cv.schedule_end_time,
+  cv.value_string,
+  cv.value_json,
+  cv.enabled,
+  cv.priority,
+  cv.updated_at
+FROM config_value cv
+JOIN config_definition cd ON cd.config_definition_id = cv.config_definition_id
+JOIN config_scope_type cst ON cst.scope_type_id = cv.scope_type_id
+LEFT JOIN alert_channel ac ON ac.alert_channel_id = cv.alert_channel_id;
+
 -- =========================================================
--- 8) DATOS BASE / SEMILLA
+-- 9) DATOS BASE / SEMILLA
 -- =========================================================
 
 INSERT INTO `empresa` (`nombre`,`estado`) VALUES
@@ -368,6 +549,48 @@ INSERT INTO `empresa` (`nombre`,`estado`) VALUES
 
 INSERT INTO `sucursal` (`empresa_id`,`nombre`,`estado`) VALUES
   (1,'Sucursal Principal','activo');
+
+INSERT INTO `config_scope_type` (`codigo`,`nombre`,`descripcion`) VALUES
+  ('global','Global','Configuración aplicable a todo el sistema'),
+  ('local','Sucursal','Configuración aplicable a una sucursal'),
+  ('camera','Cámara','Configuración aplicable a una cámara específica'),
+  ('channel','Canal','Configuración aplicable a un canal de alerta');
+
+INSERT INTO `config_group` (`codigo`,`nombre`,`descripcion`,`sort_order`) VALUES
+  ('ui','Interfaz y visualización','Preferencias funcionales de visualización del sistema',10),
+  ('recognition','Reconocimiento facial','Parámetros funcionales del motor de reconocimiento',20),
+  ('audio','Audio','Comportamiento sonoro del sistema',30),
+  ('alerts','Alertas','Mensajes, reglas y envío de alertas',40);
+
+INSERT INTO `alert_channel` (`codigo`,`nombre`,`descripcion`,`estado`) VALUES
+  ('whatsapp','WhatsApp','Canal de alertas por WhatsApp','activo'),
+  ('telegram','Telegram','Canal de alertas por Telegram','activo'),
+  ('email','Email','Canal de alertas por correo electrónico','activo'),
+  ('sms','SMS','Canal de alertas por mensajería SMS','activo');
+
+INSERT INTO `config_definition`
+  (`config_group_id`,`codigo`,`nombre`,`descripcion`,`data_type`,`enum_options`,`default_value_string`,`default_value_json`,`is_required`,`is_array`,`is_secret`,`allow_global`,`allow_local`,`allow_camera`,`allow_channel`,`allow_schedule`,`sort_order`,`estado`)
+VALUES
+  (1,'ui.visualization_style','Estilo de visualización','Define el estilo visual funcional del sistema: claro, medio u oscuro','enum',JSON_ARRAY('claro','medio','oscuro'),'oscuro',NULL,1,0,0,1,1,1,0,0,10,'activo'),
+  (2,'recognition.minScore_similarity','Similarity mínima','Umbral mínimo de similarity para aceptar coincidencias automáticas','decimal',NULL,'0.75',NULL,1,0,0,1,1,1,0,0,10,'activo'),
+  (3,'audio.sound_alert','Sonido de alerta','Activa reproducción de sonido cuando ocurre una alerta','boolean',NULL,'false',NULL,1,0,0,1,1,1,0,0,10,'activo'),
+  (3,'audio.sound_ok','Sonido OK','Activa reproducción de sonido cuando una coincidencia es válida','boolean',NULL,'false',NULL,1,0,0,1,1,1,0,0,20,'activo'),
+  (4,'alerts.message_template','Plantilla de mensaje de alerta','Texto o plantilla para mensajes de alerta, configurable por cámara/canal/horario','text',NULL,'Alerta en {{camara_nombre}} a las {{occurred_at}}. Tipo: {{final_label}}. Similaridad: {{best_similarity}}',NULL,0,0,0,1,1,1,1,1,10,'activo');
+
+INSERT INTO `config_value`
+  (`config_definition_id`,`scope_type_id`,`scope_ref_id`,`alert_channel_id`,`schedule_name`,`schedule_days_mask`,`schedule_start_time`,`schedule_end_time`,`value_string`,`value_json`,`enabled`,`priority`,`notes`,`updated_by_operador_id`)
+VALUES
+  (1,1,NULL,NULL,NULL,NULL,NULL,NULL,'oscuro',NULL,1,100,'Valor global inicial',NULL),
+  (2,1,NULL,NULL,NULL,NULL,NULL,NULL,'0.75',NULL,1,100,'Valor global inicial',NULL),
+  (3,1,NULL,NULL,NULL,NULL,NULL,NULL,'false',NULL,1,100,'Valor global inicial',NULL),
+  (4,1,NULL,NULL,NULL,NULL,NULL,NULL,'false',NULL,1,100,'Valor global inicial',NULL),
+  (5,1,NULL,2,'horario_diurno','1,2,3,4,5', '08:00:00','20:00:00','Alerta Telegram en {{camara_nombre}}. Tipo: {{final_label}}. Hora: {{occurred_at}}',NULL,1,100,'Plantilla ejemplo por horario',NULL);
+
+INSERT INTO `alert_rule`
+  (`local_id`,`camara_id`,`nombre`,`descripcion`,`evento_tipo`,`alert_channel_id`,`mensaje_template`,`only_in_schedule`,`days_mask`,`start_time`,`end_time`,`cooldown_seconds`,`enabled`,`priority`,`created_by_operador_id`)
+VALUES
+  (1,NULL,'Alerta de ladrón por Telegram','Notifica eventos clasificados como ladrón dentro del horario definido','ladron',2,'[Telegram] Alerta de ladrón en {{camara_nombre}} a las {{occurred_at}}',1,'1,2,3,4,5,6,7','00:00:00','23:59:59',30,1,10,NULL),
+  (1,NULL,'Alerta de desconocido por Email','Notifica eventos desconocidos durante horario laboral','desconocido',3,'[Email] Desconocido detectado en {{camara_nombre}} a las {{occurred_at}}',1,'1,2,3,4,5','08:00:00','20:00:00',60,1,20,NULL);
 
 INSERT INTO `operador` (
   `local_id`,`nombre`,`email`,`rol`,`estado`,`gender`,`password_bcryptjs`,`google`,`telegram_chat_id`
@@ -425,4 +648,10 @@ SET FOREIGN_KEY_CHECKS = 1;
 --      b) enrolar una nueva persona y luego vincularla al recognition_face
 -- 7) Los embeddings históricos de los reconocimientos quedan en recognition_engine_result.embedding
 --    y los embeddings de galería / enrolamiento quedan en persona_embedding.embedding
+-- 8) La configuración funcional del sistema queda en:
+--      a) config_definition  -> catálogo de parámetros
+--      b) config_value       -> valores por ámbito (global, sucursal, cámara, canal)
+--      c) alert_rule         -> reglas explícitas de alertas por evento, horario y canal
+-- 9) Las credenciales sensibles (API keys, tokens, passwords, secretos SMTP, etc.)
+--    NO deben almacenarse aquí; deben quedar en .env, vault o gestor de secretos.
 -- =========================================================
