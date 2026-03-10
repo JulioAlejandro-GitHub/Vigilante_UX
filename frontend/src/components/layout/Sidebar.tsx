@@ -10,11 +10,14 @@ import {
   Shield,
   Camera,
   FileText,
-  UserCircle
+  UserCircle,
+  LogOut
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useAuthStore } from '../../store/useAuthStore';
 
 export default function Sidebar() {
+  const { logout, user } = useAuthStore();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const menuItems = [
@@ -77,7 +80,27 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="p-4 border-t border-white/5">
+      <div className="p-4 border-t border-white/5 space-y-2">
+        {!isCollapsed && user && (
+          <div className="px-3 py-2 mb-2 bg-white/[0.02] rounded-xl border border-white/5 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shrink-0">
+              <span className="text-emerald-500 text-xs font-bold">{user.name.charAt(0)}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">{user.name}</p>
+              <p className="text-[10px] text-zinc-500 truncate">{user.email}</p>
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={logout}
+          className={`w-full flex items-center gap-3 p-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-colors group ${isCollapsed ? 'justify-center' : ''}`}
+        >
+          <LogOut className="w-5 h-5 shrink-0" />
+          {!isCollapsed && <span className="font-medium text-sm">Cerrar Sesión</span>}
+        </button>
+
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-white/5 text-zinc-500 transition-colors"

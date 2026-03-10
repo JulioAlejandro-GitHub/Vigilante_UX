@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './components/layout/MainLayout';
+import ProtectedRoute from './components/layout/ProtectedRoute';
+import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import CamerasPage from './pages/CamerasPage';
 import EventsPage from './pages/EventsPage';
@@ -13,15 +15,19 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<MainLayout />}>
-          <Route index element={<DashboardPage />} />
-          <Route path="cameras" element={<CamerasPage />} />
-          <Route path="events" element={<EventsPage />} />
-          <Route path="timeline" element={<TimelinePage />} />
-          <Route path="reports" element={<ReportsPage />} />
-          <Route path="profiles" element={<ProfilesPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/login" element={<LoginPage />} />
+
+        <Route element={<ProtectedRoute />}>
+          <Route path="/" element={<MainLayout />}>
+            <Route index element={<DashboardPage />} />
+            <Route path="cameras" element={<CamerasPage />} />
+            <Route path="events" element={<EventsPage />} />
+            <Route path="timeline" element={<TimelinePage />} />
+            <Route path="reports" element={<ReportsPage />} />
+            <Route path="profiles" element={<ProfilesPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>
