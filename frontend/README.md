@@ -43,3 +43,6 @@ Vigilante es un frontend profesional y usable para sistemas de videovigilancia, 
 
 cd /Users/julio/Documents/GitHub/axi_2/frontend
 npm run dev
+
+cd /Users/julio/Documents/GitHub/axi_2/backend
+npm run dev
