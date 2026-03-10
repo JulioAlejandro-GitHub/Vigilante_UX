@@ -38,3 +38,8 @@ Vigilante es un frontend profesional y usable para sistemas de videovigilancia, 
 - **Perfiles:** Directorio de identidades conocidas y recurrentes.
 - **Reportes:** Tarjetas de resumen para análisis estadístico.
 - **Configuración:** Administración de eventos y corrección de etiquetas de usuario, conectados globalmente a la aplicación.
+
+
+
+cd /Users/julio/Documents/GitHub/axi_2/frontend
+npm run dev
