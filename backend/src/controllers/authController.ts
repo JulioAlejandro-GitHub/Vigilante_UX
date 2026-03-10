@@ -14,6 +14,9 @@ interface OperadorRow {
 }
 
 export const login = async (req: Request, res: Response): Promise<void> => {
+
+  console.error('loginloginloginloginlogin');
+
   const { user, password } = req.body;
 
   if (!user || !password) {
@@ -28,6 +31,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
        WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
       [user]
     );
+
+
 
     if (!rows || rows.length === 0) {
       res.status(401).json({ error: 'Credenciales inválidas. Por favor, intenta de nuevo.' });
