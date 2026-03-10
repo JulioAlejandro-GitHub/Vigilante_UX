@@ -19,7 +19,7 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  isAuthenticated: false, // In a real app, you'd check localStorage/cookies here
+  isAuthenticated: false,
   user: null,
   isLoading: false,
   error: null,
@@ -27,28 +27,34 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email, password) => {
     set({ isLoading: true, error: null });
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const response = await fetch('http://localhost:8085/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ user: email, password })
+      });
 
-    // Mock validation
-    if (email === 'admin@vigilante.app' && password === 'admin123') {
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al iniciar sesión.');
+      }
+
       set({
         isAuthenticated: true,
-        user: {
-          id: '1',
-          name: 'Administrador Principal',
-          email: 'admin@vigilante.app',
-          role: 'admin',
-        },
+        user: data.user,
         isLoading: false,
         error: null,
       });
-    } else {
+
+    } catch (err: any) {
       set({
         isAuthenticated: false,
         user: null,
         isLoading: false,
-        error: 'Credenciales inválidas. Por favor, intenta de nuevo.',
+        error: err.message || 'Error de conexión. Intente nuevamente.',
       });
     }
   },
