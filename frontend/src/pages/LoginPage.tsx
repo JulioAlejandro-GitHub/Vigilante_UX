@@ -187,11 +187,6 @@ export default function LoginPage() {
               Google
             </button>
           </div>
-
-          <div className="mt-8 text-center text-xs text-zinc-600 bg-white/5 p-3 rounded-lg border border-white/5">
-            <p>Mock Credentials:</p>
-            <p className="font-mono mt-1 text-zinc-500">admin@vigilante.app / admin123</p>
-          </div>
         </div>
       </motion.div>
     </div>
