@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Search, 
-  Filter, 
   Camera, 
   ChevronLeft, 
   ChevronRight,
@@ -10,30 +10,89 @@ import {
   Calendar,
   Clock,
   Trash2,
-  Edit2
+  Edit2,
+  Save,
+  Loader2
 } from 'lucide-react';
-import { useStore } from '../store/useStore';
-import { RecognitionEvent, UserType } from '../types';
+import { eventsApi, personasApi } from '../lib/api';
+import { RecognitionEvent, UserType, Persona, PaginatedResponse } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { PersonaTipo, PersonaTipoLabels } from '../constants/dictionaries';
 
+// Decisión UX sobre agrupación:
+// He optado por mantener un listado individual simple con paginación funcional en el backend.
+// Para operaciones de seguridad, ver la secuencia de eventos individuales suele ser más útil
+// que ocultarlos tras agrupaciones complejas, que requerirían clicks adicionales para desplegar detalles.
+// La UI está diseñada para ser scaneada rápidamente, con imágenes claras y etiquetas de colores.
+
 export default function EventsPage() {
-  const { events } = useStore();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<UserType | 'all'>('all');
   const [selectedEvent, setSelectedEvent] = useState<RecognitionEvent | null>(null);
   const [page, setPage] = useState(1);
+  const [isEditingSubject, setIsEditingSubject] = useState(false);
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string>('');
   const itemsPerPage = 12;
 
-  const filteredEvents = events.filter(e => {
-    if (e.userType === 'movimiento') return false;
-    const matchesSearch = e.name?.toLowerCase().includes(searchTerm.toLowerCase()) || e.camera.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === 'all' || e.userType === filterType;
-    return matchesSearch && matchesType;
+  const { data: eventsData, isLoading } = useQuery<PaginatedResponse<RecognitionEvent>>({
+    queryKey: ['events', page, itemsPerPage, searchTerm, filterType],
+    queryFn: () => eventsApi.getAll({
+      page,
+      limit: itemsPerPage,
+      search: searchTerm,
+      type: filterType === 'all' ? undefined : filterType
+    }),
   });
 
-  const totalPages = Math.ceil(filteredEvents.length / itemsPerPage);
-  const currentEvents = filteredEvents.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  const { data: personasData } = useQuery<Persona[]>({
+    queryKey: ['personas'],
+    queryFn: personasApi.getAll,
+    enabled: isEditingSubject
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: eventsApi.delete,
+    onSuccess: () => {
+      setSelectedEvent(null);
+      // Adjust page if deleting last item
+      if (eventsData?.data.length === 1 && page > 1) {
+        setPage(p => p - 1);
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['events'] });
+      }
+    }
+  });
+
+  const updateSubjectMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string | number, data: any }) => eventsApi.updateSubject(id, data),
+    onSuccess: () => {
+      setIsEditingSubject(false);
+      setSelectedEvent(null);
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+    }
+  });
+
+  const handleDelete = () => {
+    if (selectedEvent && window.confirm('¿Estás seguro de que quieres eliminar este evento?')) {
+      deleteMutation.mutate(selectedEvent.id);
+    }
+  };
+
+  const handleUpdateSubject = () => {
+    if (selectedEvent && selectedPersonaId) {
+      updateSubjectMutation.mutate({
+        id: selectedEvent.id,
+        data: {
+          assigned_persona_id: selectedPersonaId,
+          final_label: 'identificado' // Defaulting to identified, but real logic might vary based on the persona
+        }
+      });
+    }
+  };
+
+  const totalPages = eventsData?.pagination.totalPages || 0;
+  const currentEvents = eventsData?.data || [];
 
   return (
     <div className="p-8 space-y-8 max-w-[1600px] mx-auto h-screen flex flex-col">
@@ -122,15 +181,19 @@ export default function EventsPage() {
             </motion.div>
           ))}
         </div>
-        {currentEvents.length === 0 && (
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+          </div>
+        ) : currentEvents.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-zinc-500">No se encontraron eventos</p>
           </div>
-        )}
+        ) : null}
       </div>
 
       <footer className="flex items-center justify-between pt-4 border-t border-white/5 shrink-0">
-        <p className="text-xs text-zinc-500">Mostrando {currentEvents.length} de {filteredEvents.length} eventos</p>
+        <p className="text-xs text-zinc-500">Mostrando {currentEvents.length} eventos (Total: {eventsData?.pagination.total || 0})</p>
         <div className="flex items-center gap-2">
           <button 
             disabled={page === 1}
@@ -180,14 +243,16 @@ export default function EventsPage() {
 
               <div className="flex-1 overflow-y-auto p-6 space-y-8">
                 <div className="space-y-4">
-                  <div className="relative aspect-video rounded-2xl overflow-hidden border border-white/10">
-                    <img 
-                      src={selectedEvent.fullImage} 
-                      className="w-full h-full object-cover" 
-                      alt=""
-                      referrerPolicy="no-referrer"
-                    />
-                  </div>
+                  {selectedEvent.fullImage && (
+                    <div className="relative aspect-video rounded-2xl overflow-hidden border border-white/10">
+                      <img
+                        src={selectedEvent.fullImage}
+                        className="w-full h-full object-cover"
+                        alt=""
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-4">
                     <img 
@@ -240,19 +305,58 @@ export default function EventsPage() {
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Acciones Rápidas</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button className="flex items-center justify-center gap-2 p-3 bg-white/5 hover:bg-white/10 text-white text-xs font-bold rounded-xl transition-all">
-                      <Edit2 className="w-4 h-4" />
-                      Editar Sujeto
-                    </button>
-                    <button className="flex items-center justify-center gap-2 p-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold rounded-xl transition-all">
-                      <Trash2 className="w-4 h-4" />
-                      Eliminar
-                    </button>
+                {isEditingSubject ? (
+                  <div className="space-y-4 bg-white/5 p-4 rounded-2xl border border-white/10">
+                    <h4 className="text-sm font-bold text-white mb-2">Asignar a Persona</h4>
+                    <select
+                      value={selectedPersonaId}
+                      onChange={(e) => setSelectedPersonaId(e.target.value)}
+                      className="w-full bg-[#111111] border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-emerald-500"
+                    >
+                      <option value="">Selecciona una persona...</option>
+                      {personasData?.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                    <div className="flex gap-2 mt-4">
+                      <button
+                        onClick={() => setIsEditingSubject(false)}
+                        className="flex-1 p-2 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-colors text-sm font-bold"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={handleUpdateSubject}
+                        disabled={!selectedPersonaId || updateSubjectMutation.isPending}
+                        className="flex-1 p-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 disabled:opacity-50 rounded-xl transition-colors text-sm font-bold flex items-center justify-center gap-2"
+                      >
+                        {updateSubjectMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        Guardar
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="space-y-4">
+                    <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Acciones Rápidas</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => setIsEditingSubject(true)}
+                        className="flex items-center justify-center gap-2 p-3 bg-white/5 hover:bg-white/10 text-white text-xs font-bold rounded-xl transition-all"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        Editar Sujeto
+                      </button>
+                      <button
+                        onClick={handleDelete}
+                        disabled={deleteMutation.isPending}
+                        className="flex items-center justify-center gap-2 p-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold rounded-xl transition-all disabled:opacity-50"
+                      >
+                        {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           </>

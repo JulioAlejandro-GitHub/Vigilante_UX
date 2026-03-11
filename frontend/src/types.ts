@@ -30,3 +30,20 @@ export interface DashboardStats {
   unknowns48h: number;
   thieves48h: number;
 }
+
+export interface Persona {
+  id: number;
+  name: string;
+  userType: UserType;
+  thumbnail: string | null;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}

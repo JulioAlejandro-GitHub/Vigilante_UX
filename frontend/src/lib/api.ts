@@ -40,6 +40,30 @@ export const camerasApi = {
   }
 };
 
+// Events Service
+export const eventsApi = {
+  getAll: async (params?: { page?: number; limit?: number; search?: string; type?: string }) => {
+    const response = await api.get('/events', { params });
+    return response.data;
+  },
+  updateSubject: async (id: number | string, data: { assigned_persona_id: number | string, final_label?: string }) => {
+    const response = await api.put(`/events/${id}/subject`, data);
+    return response.data;
+  },
+  delete: async (id: number | string) => {
+    const response = await api.delete(`/events/${id}`);
+    return response.data;
+  }
+};
+
+// Personas Service
+export const personasApi = {
+  getAll: async () => {
+    const response = await api.get('/personas');
+    return response.data;
+  }
+};
+
 // Dashboard Service
 export const dashboardApi = {
   getStats: async () => {
