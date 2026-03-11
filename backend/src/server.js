@@ -9,6 +9,8 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const cameraRoutes_1 = __importDefault(require("./routes/cameraRoutes"));
 const dashboardRoutes_1 = __importDefault(require("./routes/dashboardRoutes"));
+const personaRoutes_1 = __importDefault(require("./routes/personaRoutes"));
+const eventRoutes_1 = __importDefault(require("./routes/eventRoutes"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 8085;
@@ -23,6 +25,8 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes_1.default);
 app.use('/api/cameras', cameraRoutes_1.default);
 app.use('/api/dashboard', dashboardRoutes_1.default);
+app.use('/api/personas', personaRoutes_1.default);
+app.use('/api/events', eventRoutes_1.default);
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ error: 'Ha ocurrido un error en el servidor.' });

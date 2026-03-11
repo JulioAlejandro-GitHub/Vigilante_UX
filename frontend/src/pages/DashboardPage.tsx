@@ -7,44 +7,47 @@ import {
   ShieldAlert,
   Loader2,
 } from 'lucide-react';
-import { motion } from 'motion/react';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardApi } from '../lib/api';
 import { RecognitionFaceFinalLabel, RecognitionFaceFinalLabelLabels } from '../constants/dictionaries';
 
+import { motion, AnimatePresence } from 'motion/react';
+
 export default function DashboardPage() {
-  const { data: statsData, isLoading: isLoadingStats } = useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: dashboardApi.getStats,
+  const { data: summaryData, isLoading } = useQuery({
+    queryKey: ['dashboard-summary'],
+    queryFn: () => dashboardApi.getDashboardSummary(8),
     refetchInterval: 5000, // Poll every 5s
   });
 
-  const { data: recentEvents = [], isLoading: isLoadingEvents } = useQuery({
-    queryKey: ['dashboard-events'],
-    queryFn: () => dashboardApi.getRecentEvents(8),
-    refetchInterval: 5000,
-  });
-
-  const { data: criticalAlerts = [], isLoading: isLoadingAlerts } = useQuery({
-    queryKey: ['dashboard-alerts'],
-    queryFn: dashboardApi.getCriticalAlerts,
-    refetchInterval: 5000,
-  });
+  const statsData = summaryData?.stats;
+  const recentEvents = summaryData?.recentEvents || [];
+  const criticalAlerts = summaryData?.criticalAlerts || [];
 
   const stats = [
     { label: 'Cámaras Totales', value: statsData?.totalCameras || 0, icon: Camera, color: 'text-blue-400', bg: 'bg-blue-400/10' },
     { label: 'Activas', value: statsData?.activeCameras || 0, icon: Activity, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
     { label: 'Inactivas', value: statsData?.inactiveCameras || 0, icon: AlertTriangle, color: 'text-amber-400', bg: 'bg-amber-400/10' },
-    { label: 'Reconocimientos (48h)', value: statsData?.recognitions48h || 0, icon: Activity, color: 'text-purple-400', bg: 'bg-purple-400/10' },
-    { label: 'Desconocidos (48h)', value: statsData?.unknowns48h || 0, icon: UserX, color: 'text-zinc-400', bg: 'bg-zinc-400/10' },
-    { label: 'Ladrones (48h)', value: statsData?.thieves48h || 0, icon: ShieldAlert, color: 'text-red-400', bg: 'bg-red-400/10' },
+    { label: 'Reconocimientos (24h)', value: statsData?.recognitions24h || 0, icon: Activity, color: 'text-purple-400', bg: 'bg-purple-400/10' },
+    { label: 'Desconocidos (24h)', value: statsData?.unknowns24h || 0, icon: UserX, color: 'text-zinc-400', bg: 'bg-zinc-400/10' },
+    { label: 'Ladrones (24h)', value: statsData?.thieves24h || 0, icon: ShieldAlert, color: 'text-red-400', bg: 'bg-red-400/10' },
   ];
 
   return (
     <div className="p-8 space-y-8 max-w-[1600px] mx-auto">
       <header>
-        <h1 className="text-3xl font-bold text-white tracking-tight">Dashboard General</h1>
-        <p className="text-zinc-500 mt-1">Resumen operativo de seguridad en tiempo real.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white tracking-tight">Dashboard General</h1>
+            <p className="text-zinc-500 mt-1">Resumen operativo de seguridad unificado y sincronizado en tiempo real (últimas 24h).</p>
+          </div>
+          {isLoading && (
+            <div className="flex items-center gap-2 text-zinc-500 text-sm">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Sincronizando...</span>
+            </div>
+          )}
+        </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -89,21 +92,38 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {isLoadingEvents ? (
-                    <tr>
+                  <AnimatePresence mode="popLayout">
+                  {isLoading ? (
+                    <motion.tr
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
                       <td colSpan={5} className="px-6 py-8 text-center text-zinc-500">
                         <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
                         Cargando actividad...
                       </td>
-                    </tr>
+                    </motion.tr>
                   ) : recentEvents.length === 0 ? (
-                    <tr>
+                    <motion.tr
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
                       <td colSpan={5} className="px-6 py-8 text-center text-zinc-500">
                         No hay actividad reciente
                       </td>
-                    </tr>
+                    </motion.tr>
                   ) : recentEvents.map((event: any) => (
-                    <tr key={event.id} className="hover:bg-white/[0.02] transition-colors group cursor-pointer">
+                    <motion.tr
+                      layout
+                      initial={{ opacity: 0, x: -20, backgroundColor: 'rgba(52, 211, 153, 0.2)' }}
+                      animate={{ opacity: 1, x: 0, backgroundColor: 'transparent' }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.4 }}
+                      key={event.id}
+                      className="hover:bg-white/[0.02] transition-colors group cursor-pointer"
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           {event.thumbnail ? (
@@ -145,8 +165,9 @@ export default function DashboardPage() {
                           <span className="text-xs font-mono text-zinc-500">{((event.confidence || 0) * 100).toFixed(0)}%</span>
                         </div>
                       </td>
-                    </tr>
+                    </motion.tr>
                   ))}
+                  </AnimatePresence>
                 </tbody>
               </table>
             </div>
@@ -156,7 +177,7 @@ export default function DashboardPage() {
         <div className="space-y-4">
           <h2 className="text-xl font-bold text-white">Alertas Críticas</h2>
           <div className="space-y-3">
-            {isLoadingAlerts ? (
+            {isLoading ? (
               <div className="text-center py-8 text-zinc-500">
                 <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
                 Cargando alertas...

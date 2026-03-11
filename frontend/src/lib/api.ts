@@ -66,16 +66,8 @@ export const personasApi = {
 
 // Dashboard Service
 export const dashboardApi = {
-  getStats: async () => {
-    const response = await api.get('/dashboard/stats');
-    return response.data;
-  },
-  getRecentEvents: async (limit = 10) => {
-    const response = await api.get('/dashboard/recent-events', { params: { limit } });
-    return response.data;
-  },
-  getCriticalAlerts: async () => {
-    const response = await api.get('/dashboard/critical-alerts');
+  getDashboardSummary: async (limit = 10) => {
+    const response = await api.get('/dashboard/summary', { params: { limit } });
     return response.data;
   }
 };

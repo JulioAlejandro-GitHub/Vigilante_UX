@@ -2,9 +2,13 @@ import { Request, Response } from 'express';
 import pool from '../config/database';
 import { RowDataPacket } from 'mysql2/promise';
 
-export const getDashboardStats = async (req: Request, res: Response) => {
+export const getDashboardSummary = async (req: Request, res: Response) => {
   try {
-    // Cameras Stats
+    const limit = parseInt(req.query.limit as string) || 8;
+    // We use a single transaction-like or at least concurrent approach for consistency
+    // Although standard queries without transaction might have slight ms diffs,
+    // running them together reduces the window significantly.
+
     const [cameraRows] = await pool.query<RowDataPacket[]>(`
       SELECT
         COUNT(*) as totalCameras,
@@ -13,38 +17,19 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       FROM camara
     `);
 
-    // Recognition Stats (last 48h)
+    // Recognition Stats (last 24h for consistency)
     const [eventRows] = await pool.query<RowDataPacket[]>(`
       SELECT
-        COUNT(*) as recognitions48h,
-        SUM(CASE WHEN final_label = 'desconocido' THEN 1 ELSE 0 END) as unknowns48h,
-        SUM(CASE WHEN final_label = 'ladron' THEN 1 ELSE 0 END) as thieves48h
+        COUNT(*) as recognitions24h,
+        SUM(CASE WHEN final_label = 'desconocido' THEN 1 ELSE 0 END) as unknowns24h,
+        SUM(CASE WHEN final_label = 'ladron' THEN 1 ELSE 0 END) as thieves24h
       FROM recognition_face rf
       JOIN recognition_event re ON rf.recognition_event_id = re.recognition_event_id
-      WHERE re.occurred_at >= NOW() - INTERVAL 48 HOUR
+      WHERE re.occurred_at >= NOW() - INTERVAL 24 HOUR
     `);
 
-    const stats = {
-      totalCameras: Number(cameraRows[0]?.totalCameras) || 0,
-      activeCameras: Number(cameraRows[0]?.activeCameras) || 0,
-      inactiveCameras: Number(cameraRows[0]?.inactiveCameras) || 0,
-      recognitions48h: Number(eventRows[0]?.recognitions48h) || 0,
-      unknowns48h: Number(eventRows[0]?.unknowns48h) || 0,
-      thieves48h: Number(eventRows[0]?.thieves48h) || 0,
-    };
-
-    res.json(stats);
-  } catch (error) {
-    console.error('Error fetching dashboard stats:', error);
-    res.status(500).json({ error: 'Error fetching stats' });
-  }
-};
-
-export const getRecentEvents = async (req: Request, res: Response) => {
-  try {
-    const limit = parseInt(req.query.limit as string) || 10;
-
-    const query = `
+    // Recent Events
+    const queryEvents = `
       SELECT
         re.recognition_event_id as id,
         re.occurred_at as timestamp,
@@ -61,24 +46,11 @@ export const getRecentEvents = async (req: Request, res: Response) => {
       ORDER BY re.occurred_at DESC
       LIMIT ?
     `;
+    const [recentEvents] = await pool.query<RowDataPacket[]>(queryEvents, [limit]);
 
-    const [rows] = await pool.query<RowDataPacket[]>(query, [limit]);
-    res.json(rows);
-  } catch (error) {
-    console.error('Error fetching recent events:', error);
-    res.status(500).json({ error: 'Error fetching recent events' });
-  }
-};
-
-export const getCriticalAlerts = async (req: Request, res: Response) => {
-  try {
-    // We will build critical alerts based on:
-    // 1. Inactive cameras
-    // 2. Recent thieves detections (last 24 hours)
-
+    // Critical Alerts
     const alerts: any[] = [];
 
-    // Check inactive cameras
     const [inactiveCams] = await pool.query<RowDataPacket[]>(`
       SELECT nombre, updated_at as time
       FROM camara
@@ -94,7 +66,6 @@ export const getCriticalAlerts = async (req: Request, res: Response) => {
       });
     });
 
-    // Check recent thieves
     const [thieves] = await pool.query<RowDataPacket[]>(`
       SELECT c.nombre as camera_name, re.occurred_at as time
       FROM recognition_face rf
@@ -114,12 +85,23 @@ export const getCriticalAlerts = async (req: Request, res: Response) => {
       });
     });
 
-    // Sort by time descending
     alerts.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 
-    res.json(alerts.slice(0, 10)); // return top 10 recent alerts
+    res.json({
+      stats: {
+        totalCameras: Number(cameraRows[0]?.totalCameras) || 0,
+        activeCameras: Number(cameraRows[0]?.activeCameras) || 0,
+        inactiveCameras: Number(cameraRows[0]?.inactiveCameras) || 0,
+        recognitions24h: Number(eventRows[0]?.recognitions24h) || 0,
+        unknowns24h: Number(eventRows[0]?.unknowns24h) || 0,
+        thieves24h: Number(eventRows[0]?.thieves24h) || 0,
+      },
+      recentEvents,
+      criticalAlerts: alerts.slice(0, 10)
+    });
+
   } catch (error) {
-    console.error('Error fetching critical alerts:', error);
-    res.status(500).json({ error: 'Error fetching critical alerts' });
+    console.error('Error fetching dashboard summary:', error);
+    res.status(500).json({ error: 'Error fetching summary' });
   }
 };

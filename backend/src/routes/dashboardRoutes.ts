@@ -1,10 +1,8 @@
 import { Router } from 'express';
-import { getDashboardStats, getRecentEvents, getCriticalAlerts } from '../controllers/dashboardController';
+import { getDashboardSummary } from '../controllers/dashboardController';
 
 const router = Router();
 
-router.get('/stats', getDashboardStats);
-router.get('/recent-events', getRecentEvents);
-router.get('/critical-alerts', getCriticalAlerts);
+router.get('/summary', getDashboardSummary);
 
 export default router;

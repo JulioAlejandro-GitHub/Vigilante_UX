@@ -3,11 +3,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCriticalAlerts = exports.getRecentEvents = exports.getDashboardStats = void 0;
+exports.getDashboardSummary = void 0;
 const database_1 = __importDefault(require("../config/database"));
-const getDashboardStats = async (req, res) => {
+const getDashboardSummary = async (req, res) => {
     try {
-        // Cameras Stats
+        const limit = parseInt(req.query.limit) || 8;
+        // We use a single transaction-like or at least concurrent approach for consistency
+        // Although standard queries without transaction might have slight ms diffs,
+        // running them together reduces the window significantly.
         const [cameraRows] = await database_1.default.query(`
       SELECT
         COUNT(*) as totalCameras,
@@ -15,36 +18,18 @@ const getDashboardStats = async (req, res) => {
         SUM(CASE WHEN estado = 'Inactivo' THEN 1 ELSE 0 END) as inactiveCameras
       FROM camara
     `);
-        // Recognition Stats (last 48h)
+        // Recognition Stats (last 24h for consistency)
         const [eventRows] = await database_1.default.query(`
       SELECT
-        COUNT(*) as recognitions48h,
-        SUM(CASE WHEN final_label = 'desconocido' THEN 1 ELSE 0 END) as unknowns48h,
-        SUM(CASE WHEN final_label = 'ladron' THEN 1 ELSE 0 END) as thieves48h
+        COUNT(*) as recognitions24h,
+        SUM(CASE WHEN final_label = 'desconocido' THEN 1 ELSE 0 END) as unknowns24h,
+        SUM(CASE WHEN final_label = 'ladron' THEN 1 ELSE 0 END) as thieves24h
       FROM recognition_face rf
       JOIN recognition_event re ON rf.recognition_event_id = re.recognition_event_id
-      WHERE re.occurred_at >= NOW() - INTERVAL 48 HOUR
+      WHERE re.occurred_at >= NOW() - INTERVAL 24 HOUR
     `);
-        const stats = {
-            totalCameras: Number(cameraRows[0]?.totalCameras) || 0,
-            activeCameras: Number(cameraRows[0]?.activeCameras) || 0,
-            inactiveCameras: Number(cameraRows[0]?.inactiveCameras) || 0,
-            recognitions48h: Number(eventRows[0]?.recognitions48h) || 0,
-            unknowns48h: Number(eventRows[0]?.unknowns48h) || 0,
-            thieves48h: Number(eventRows[0]?.thieves48h) || 0,
-        };
-        res.json(stats);
-    }
-    catch (error) {
-        console.error('Error fetching dashboard stats:', error);
-        res.status(500).json({ error: 'Error fetching stats' });
-    }
-};
-exports.getDashboardStats = getDashboardStats;
-const getRecentEvents = async (req, res) => {
-    try {
-        const limit = parseInt(req.query.limit) || 10;
-        const query = `
+        // Recent Events
+        const queryEvents = `
       SELECT
         re.recognition_event_id as id,
         re.occurred_at as timestamp,
@@ -61,22 +46,9 @@ const getRecentEvents = async (req, res) => {
       ORDER BY re.occurred_at DESC
       LIMIT ?
     `;
-        const [rows] = await database_1.default.query(query, [limit]);
-        res.json(rows);
-    }
-    catch (error) {
-        console.error('Error fetching recent events:', error);
-        res.status(500).json({ error: 'Error fetching recent events' });
-    }
-};
-exports.getRecentEvents = getRecentEvents;
-const getCriticalAlerts = async (req, res) => {
-    try {
-        // We will build critical alerts based on:
-        // 1. Inactive cameras
-        // 2. Recent thieves detections (last 24 hours)
+        const [recentEvents] = await database_1.default.query(queryEvents, [limit]);
+        // Critical Alerts
         const alerts = [];
-        // Check inactive cameras
         const [inactiveCams] = await database_1.default.query(`
       SELECT nombre, updated_at as time
       FROM camara
@@ -90,7 +62,6 @@ const getCriticalAlerts = async (req, res) => {
                 type: 'error'
             });
         });
-        // Check recent thieves
         const [thieves] = await database_1.default.query(`
       SELECT c.nombre as camera_name, re.occurred_at as time
       FROM recognition_face rf
@@ -108,14 +79,24 @@ const getCriticalAlerts = async (req, res) => {
                 type: 'critical'
             });
         });
-        // Sort by time descending
         alerts.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-        res.json(alerts.slice(0, 10)); // return top 10 recent alerts
+        res.json({
+            stats: {
+                totalCameras: Number(cameraRows[0]?.totalCameras) || 0,
+                activeCameras: Number(cameraRows[0]?.activeCameras) || 0,
+                inactiveCameras: Number(cameraRows[0]?.inactiveCameras) || 0,
+                recognitions24h: Number(eventRows[0]?.recognitions24h) || 0,
+                unknowns24h: Number(eventRows[0]?.unknowns24h) || 0,
+                thieves24h: Number(eventRows[0]?.thieves24h) || 0,
+            },
+            recentEvents,
+            criticalAlerts: alerts.slice(0, 10)
+        });
     }
     catch (error) {
-        console.error('Error fetching critical alerts:', error);
-        res.status(500).json({ error: 'Error fetching critical alerts' });
+        console.error('Error fetching dashboard summary:', error);
+        res.status(500).json({ error: 'Error fetching summary' });
     }
 };
-exports.getCriticalAlerts = getCriticalAlerts;
+exports.getDashboardSummary = getDashboardSummary;
 //# sourceMappingURL=dashboardController.js.map
