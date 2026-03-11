@@ -5,29 +5,39 @@ import {
   AlertTriangle, 
   UserX, 
   ShieldAlert,
+  Loader2,
 } from 'lucide-react';
-import { useStore } from '../store/useStore';
 import { motion } from 'motion/react';
-import { PersonaTipo, PersonaTipoLabels } from '../constants/dictionaries';
+import { useQuery } from '@tanstack/react-query';
+import { dashboardApi } from '../lib/api';
+import { RecognitionFaceFinalLabel, RecognitionFaceFinalLabelLabels } from '../constants/dictionaries';
 
 export default function DashboardPage() {
-  const { cameras, events } = useStore();
-  const activeCameras = cameras.filter(c => c.status === 'active').length;
+  const { data: statsData, isLoading: isLoadingStats } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: dashboardApi.getStats,
+    refetchInterval: 5000, // Poll every 5s
+  });
 
-  // Stats filtering based on mock data events
-  const recognitions48h = events.filter(e => e.userType !== 'movimiento').length;
-  const unknowns48h = events.filter(e => e.userType === PersonaTipo.OTRO).length; // Map 'desconocido' to PersonaTipo.OTRO based on mockData.ts
-  const thieves48h = events.filter(e => e.userType === PersonaTipo.LADRON).length;
+  const { data: recentEvents = [], isLoading: isLoadingEvents } = useQuery({
+    queryKey: ['dashboard-events'],
+    queryFn: () => dashboardApi.getRecentEvents(8),
+    refetchInterval: 5000,
+  });
 
-  const recentEvents = events.slice(0, 8);
-  
+  const { data: criticalAlerts = [], isLoading: isLoadingAlerts } = useQuery({
+    queryKey: ['dashboard-alerts'],
+    queryFn: dashboardApi.getCriticalAlerts,
+    refetchInterval: 5000,
+  });
+
   const stats = [
-    { label: 'Cámaras Totales', value: cameras.length, icon: Camera, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-    { label: 'Activas', value: activeCameras, icon: Activity, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-    { label: 'Inactivas', value: cameras.length - activeCameras, icon: AlertTriangle, color: 'text-amber-400', bg: 'bg-amber-400/10' },
-    { label: 'Reconocimientos (48h)', value: recognitions48h, icon: Activity, color: 'text-purple-400', bg: 'bg-purple-400/10' },
-    { label: 'Desconocidos (48h)', value: unknowns48h, icon: UserX, color: 'text-zinc-400', bg: 'bg-zinc-400/10' },
-    { label: 'Ladrones (48h)', value: thieves48h, icon: ShieldAlert, color: 'text-red-400', bg: 'bg-red-400/10' },
+    { label: 'Cámaras Totales', value: statsData?.totalCameras || 0, icon: Camera, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+    { label: 'Activas', value: statsData?.activeCameras || 0, icon: Activity, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+    { label: 'Inactivas', value: statsData?.inactiveCameras || 0, icon: AlertTriangle, color: 'text-amber-400', bg: 'bg-amber-400/10' },
+    { label: 'Reconocimientos (48h)', value: statsData?.recognitions48h || 0, icon: Activity, color: 'text-purple-400', bg: 'bg-purple-400/10' },
+    { label: 'Desconocidos (48h)', value: statsData?.unknowns48h || 0, icon: UserX, color: 'text-zinc-400', bg: 'bg-zinc-400/10' },
+    { label: 'Ladrones (48h)', value: statsData?.thieves48h || 0, icon: ShieldAlert, color: 'text-red-400', bg: 'bg-red-400/10' },
   ];
 
   return (
@@ -79,7 +89,20 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {recentEvents.map((event) => (
+                  {isLoadingEvents ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-8 text-center text-zinc-500">
+                        <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+                        Cargando actividad...
+                      </td>
+                    </tr>
+                  ) : recentEvents.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-8 text-center text-zinc-500">
+                        No hay actividad reciente
+                      </td>
+                    </tr>
+                  ) : recentEvents.map((event: any) => (
                     <tr key={event.id} className="hover:bg-white/[0.02] transition-colors group cursor-pointer">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -100,12 +123,11 @@ export default function DashboardPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md ${
-                          event.userType === PersonaTipo.LADRON ? 'bg-red-500/10 text-red-400' :
-                          event.userType === PersonaTipo.SOCIO ? 'bg-emerald-500/10 text-emerald-400' :
-                          event.userType === 'movimiento' ? 'bg-amber-500/10 text-amber-400' :
+                          event.userType === RecognitionFaceFinalLabel.LADRON ? 'bg-red-500/10 text-red-400' :
+                          event.userType === RecognitionFaceFinalLabel.IDENTIFICADO ? 'bg-emerald-500/10 text-emerald-400' :
                           'bg-zinc-500/10 text-zinc-400'
                         }`}>
-                          {event.userType === 'movimiento' ? 'Movimiento' : PersonaTipoLabels[event.userType as typeof PersonaTipo[keyof typeof PersonaTipo]]}
+                          {RecognitionFaceFinalLabelLabels[event.userType as typeof RecognitionFaceFinalLabel[keyof typeof RecognitionFaceFinalLabel]] || 'Otro'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-zinc-400">{event.camera}</td>
@@ -117,10 +139,10 @@ export default function DashboardPage() {
                           <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden w-16">
                             <div 
                               className="h-full bg-emerald-500" 
-                              style={{ width: `${event.confidence * 100}%` }}
+                              style={{ width: `${(event.confidence || 0) * 100}%` }}
                             />
                           </div>
-                          <span className="text-xs font-mono text-zinc-500">{(event.confidence * 100).toFixed(0)}%</span>
+                          <span className="text-xs font-mono text-zinc-500">{((event.confidence || 0) * 100).toFixed(0)}%</span>
                         </div>
                       </td>
                     </tr>
@@ -134,22 +156,29 @@ export default function DashboardPage() {
         <div className="space-y-4">
           <h2 className="text-xl font-bold text-white">Alertas Críticas</h2>
           <div className="space-y-3">
-            {[
-              { title: 'Cámara Bodega Inactiva', time: 'Hace 12 min', type: 'error', icon: AlertTriangle },
-              { title: 'Intrusión Detectada - Pasillo Norte', time: 'Hace 45 min', type: 'critical', icon: ShieldAlert },
-              { title: 'Socio VIP Detectado - Acceso', time: 'Hace 1 hora', type: 'info', icon: Activity },
-            ].map((alert, i) => (
-              <div key={i} className="bg-[#111111] border border-white/5 p-4 rounded-2xl flex gap-4 items-start">
+            {isLoadingAlerts ? (
+              <div className="text-center py-8 text-zinc-500">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+                Cargando alertas...
+              </div>
+            ) : criticalAlerts.length === 0 ? (
+              <div className="text-center py-8 text-zinc-500">
+                No hay alertas críticas
+              </div>
+            ) : criticalAlerts.map((alert: any) => (
+              <div key={alert.id} className="bg-[#111111] border border-white/5 p-4 rounded-2xl flex gap-4 items-start">
                 <div className={`p-2 rounded-lg shrink-0 ${
                   alert.type === 'critical' ? 'bg-red-500/10 text-red-400' :
                   alert.type === 'error' ? 'bg-amber-500/10 text-amber-400' :
                   'bg-emerald-500/10 text-emerald-400'
                 }`}>
-                  <alert.icon className="w-5 h-5" />
+                  {alert.type === 'critical' ? <ShieldAlert className="w-5 h-5" /> :
+                   alert.type === 'error' ? <AlertTriangle className="w-5 h-5" /> :
+                   <Activity className="w-5 h-5" />}
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-white">{alert.title}</h4>
-                  <p className="text-xs text-zinc-500 mt-1">{alert.time}</p>
+                  <p className="text-xs text-zinc-500 mt-1">{new Date(alert.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
               </div>
             ))}
