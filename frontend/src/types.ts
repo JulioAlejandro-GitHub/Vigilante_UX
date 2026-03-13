@@ -9,8 +9,10 @@ export interface RecognitionEvent {
   userType: UserType;
   name?: string;
   confidence: number;
-  thumbnail: string;
-  fullImage: string;
+  thumbnailUrl: string;
+  previewUrl?: string;
+  cropUrl?: string;
+  frameImageUrl: string;
   gallery?: string[];
   history?: { timestamp: Date; camera: string }[];
 }
@@ -35,7 +37,7 @@ export interface Persona {
   id: number;
   name: string;
   userType: UserType;
-  thumbnail: string | null;
+  thumbnailUrl: string | null;
 }
 
 export interface PaginatedResponse<T> {

@@ -165,7 +165,7 @@ export default function TimelinePage() {
                       ) : (
                         <div className="relative group/item">
                           <img 
-                            src={event.thumbnail} 
+                            src={event.thumbnailUrl}
                             className="w-12 h-12 rounded-xl object-cover border-2 border-white/10 shadow-xl" 
                             alt=""
                             referrerPolicy="no-referrer"
@@ -229,7 +229,7 @@ export default function TimelinePage() {
                 <div className="space-y-4">
                   <div className="relative aspect-video rounded-2xl overflow-hidden border border-white/10 group">
                     <img 
-                      src={selectedEvent.fullImage} 
+                      src={selectedEvent.frameImageUrl}
                       className="w-full h-full object-cover" 
                       alt=""
                       referrerPolicy="no-referrer"

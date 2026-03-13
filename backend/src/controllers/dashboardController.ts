@@ -50,7 +50,10 @@ export const getRecentEvents = async (req: Request, res: Response) => {
         re.occurred_at as timestamp,
         c.nombre as camera,
         rf.final_label as userType,
-        rf.face_img as thumbnail,
+        COALESCE(vfp.face_preview_url, vemi.frame_image_url) as thumbnailUrl,
+        vfp.face_preview_url as previewUrl,
+        vfc.face_image_url as cropUrl,
+        vemi.frame_image_url as frameImageUrl,
         rf.best_similarity as confidence,
         p.nombre as name,
         p.tipo as persona_tipo
@@ -58,6 +61,9 @@ export const getRecentEvents = async (req: Request, res: Response) => {
       JOIN recognition_face rf ON re.recognition_event_id = rf.recognition_event_id
       JOIN camara c ON re.camara_id = c.camara_id
       LEFT JOIN persona p ON rf.assigned_persona_id = p.persona_id
+      LEFT JOIN view_face_preview vfp ON rf.recognition_face_id = vfp.recognition_face_id
+      LEFT JOIN view_face_crop vfc ON rf.recognition_face_id = vfc.recognition_face_id
+      LEFT JOIN view_event_main_image vemi ON re.recognition_event_id = vemi.recognition_event_id
       ORDER BY re.occurred_at DESC
       LIMIT ?
     `;

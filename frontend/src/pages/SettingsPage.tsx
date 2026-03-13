@@ -68,7 +68,7 @@ export default function SettingsPage() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <img 
-                        src={event.thumbnail} 
+                        src={event.thumbnailUrl}
                         className="w-10 h-10 rounded-xl object-cover border border-white/10" 
                         alt=""
                         referrerPolicy="no-referrer"

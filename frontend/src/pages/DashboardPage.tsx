@@ -106,9 +106,9 @@ export default function DashboardPage() {
                     <tr key={event.id} className="hover:bg-white/[0.02] transition-colors group cursor-pointer">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          {event.thumbnail ? (
+                          {event.thumbnailUrl ? (
                             <img
-                              src={event.thumbnail}
+                              src={event.thumbnailUrl}
                               className="w-8 h-8 rounded-lg object-cover border border-white/10"
                               alt=""
                               referrerPolicy="no-referrer"

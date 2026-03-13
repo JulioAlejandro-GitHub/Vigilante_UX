@@ -60,7 +60,7 @@ export default function ProfilesPage() {
           >
             <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-white/10 shrink-0">
               <img
-                src={profile.thumbnail}
+                src={profile.thumbnailUrl}
                 className="w-full h-full object-cover"
                 alt=""
                 referrerPolicy="no-referrer"

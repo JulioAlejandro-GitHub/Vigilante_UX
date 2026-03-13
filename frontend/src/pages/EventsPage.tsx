@@ -142,7 +142,7 @@ export default function EventsPage() {
             >
               <div className="relative aspect-square">
                 <img 
-                  src={event.thumbnail} 
+                  src={event.thumbnailUrl}
                   className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" 
                   alt=""
                   referrerPolicy="no-referrer"
@@ -243,10 +243,10 @@ export default function EventsPage() {
 
               <div className="flex-1 overflow-y-auto p-6 space-y-8">
                 <div className="space-y-4">
-                  {selectedEvent.fullImage && (
+                  {selectedEvent.frameImageUrl && (
                     <div className="relative aspect-video rounded-2xl overflow-hidden border border-white/10">
                       <img
-                        src={selectedEvent.fullImage}
+                        src={selectedEvent.frameImageUrl}
                         className="w-full h-full object-cover"
                         alt=""
                         referrerPolicy="no-referrer"
@@ -256,7 +256,7 @@ export default function EventsPage() {
 
                   <div className="flex items-center gap-4">
                     <img 
-                      src={selectedEvent.thumbnail} 
+                      src={selectedEvent.thumbnailUrl}
                       className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-500/30" 
                       alt=""
                       referrerPolicy="no-referrer"

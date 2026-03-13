@@ -9,7 +9,7 @@ export const getPersonas = async (req: Request, res: Response) => {
         persona_id as id,
         nombre as name,
         tipo as userType,
-        img_referencia as thumbnail
+        img_referencia as thumbnailUrl
       FROM persona
       WHERE estado = 'activo'
       ORDER BY nombre ASC

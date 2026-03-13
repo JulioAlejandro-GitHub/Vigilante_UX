@@ -50,8 +50,10 @@ const generateEvents = (): RecognitionEvent[] => {
       userType: type,
       name: names[type][Math.floor(Math.random() * names[type].length)],
       confidence,
-      thumbnail: `https://picsum.photos/seed/face-${i}/100/100`,
-      fullImage: `https://picsum.photos/seed/scene-${i}/800/600`,
+      thumbnailUrl: `https://picsum.photos/seed/face-${i}/100/100`,
+      previewUrl: `https://picsum.photos/seed/face-${i}/100/100`,
+      cropUrl: `https://picsum.photos/seed/face-${i}/100/100`,
+      frameImageUrl: `https://picsum.photos/seed/scene-${i}/800/600`,
       gallery: [
         `https://picsum.photos/seed/g1-${i}/200/200`,
         `https://picsum.photos/seed/g2-${i}/200/200`,
@@ -73,8 +75,8 @@ const generateEvents = (): RecognitionEvent[] => {
       camera: cameras[Math.floor(Math.random() * cameras.length)],
       userType: 'movimiento',
       confidence: 1,
-      thumbnail: '',
-      fullImage: ''
+      thumbnailUrl: '',
+      frameImageUrl: ''
     });
   }
 
