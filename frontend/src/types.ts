@@ -12,7 +12,6 @@ export interface RecognitionEvent {
   thumbnailUrl: string;
   previewUrl?: string;
   cropUrl?: string;
-  frameImageUrl: string;
   gallery?: string[];
   history?: { timestamp: Date; camera: string }[];
 }

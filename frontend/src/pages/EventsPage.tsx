@@ -243,11 +243,11 @@ export default function EventsPage() {
 
               <div className="flex-1 overflow-y-auto p-6 space-y-8">
                 <div className="space-y-4">
-                  {selectedEvent.frameImageUrl && (
-                    <div className="relative aspect-video rounded-2xl overflow-hidden border border-white/10">
+                  {selectedEvent.previewUrl && (
+                    <div className="relative aspect-video rounded-2xl overflow-hidden border border-white/10 bg-black flex items-center justify-center">
                       <img
-                        src={selectedEvent.frameImageUrl}
-                        className="w-full h-full object-cover"
+                        src={selectedEvent.previewUrl}
+                        className="max-w-full max-h-full object-contain"
                         alt=""
                         referrerPolicy="no-referrer"
                       />

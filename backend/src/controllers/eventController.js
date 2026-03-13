@@ -40,18 +40,14 @@ const getEvents = async (req, res) => {
         c.nombre as camera,
         rf.final_label as userType,
         rf.best_similarity as confidence,
-        COALESCE(vfp.face_preview_url, vemi.frame_image_url) as thumbnailUrl,
-        vfp.face_preview_url as previewUrl,
-        vfc.face_image_url as cropUrl,
-        vemi.frame_image_url as frameImageUrl,
+        COALESCE(rf.face_preview_url, rf.face_image_url) as thumbnailUrl,
+        rf.face_preview_url as previewUrl,
+        rf.face_image_url as cropUrl,
         p.nombre as name
       FROM recognition_face rf
       JOIN recognition_event re ON rf.recognition_event_id = re.recognition_event_id
       JOIN camara c ON re.camara_id = c.camara_id
       LEFT JOIN persona p ON rf.assigned_persona_id = p.persona_id
-      LEFT JOIN view_face_preview vfp ON rf.recognition_face_id = vfp.recognition_face_id
-      LEFT JOIN view_face_crop vfc ON rf.recognition_face_id = vfc.recognition_face_id
-      LEFT JOIN view_event_main_image vemi ON re.recognition_event_id = vemi.recognition_event_id
       ${whereStr}
       ORDER BY re.occurred_at DESC
       LIMIT ? OFFSET ?

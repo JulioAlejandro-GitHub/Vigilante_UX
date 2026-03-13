@@ -227,20 +227,22 @@ export default function TimelinePage() {
 
               <div className="flex-1 overflow-y-auto p-6 space-y-8">
                 <div className="space-y-4">
-                  <div className="relative aspect-video rounded-2xl overflow-hidden border border-white/10 group">
-                    <img 
-                      src={selectedEvent.frameImageUrl}
-                      className="w-full h-full object-cover" 
-                      alt=""
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-                      <button className="bg-white/10 backdrop-blur-md text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-white/20 transition-all">
-                        <ExternalLink className="w-3 h-3" />
-                        Ver original
-                      </button>
+                  {selectedEvent.previewUrl && (
+                    <div className="relative aspect-video rounded-2xl overflow-hidden border border-white/10 group bg-black flex items-center justify-center">
+                      <img
+                        src={selectedEvent.previewUrl}
+                        className="max-w-full max-h-full object-contain"
+                        alt=""
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                        <button className="bg-white/10 backdrop-blur-md text-white text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-white/20 transition-all">
+                          <ExternalLink className="w-3 h-3" />
+                          Ver original
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="flex items-center justify-between">
                     <div>
