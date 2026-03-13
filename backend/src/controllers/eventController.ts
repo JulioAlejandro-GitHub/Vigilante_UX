@@ -10,6 +10,7 @@ export const getEvents = async (req: Request, res: Response) => {
 
     const search = req.query.search as string;
     const type = req.query.type as string;
+    const personaId = req.query.personaId as string;
 
     let whereClauses = [];
     let queryParams: any[] = [];
@@ -22,6 +23,11 @@ export const getEvents = async (req: Request, res: Response) => {
     if (type && type !== 'all') {
       whereClauses.push('rf.final_label = ?');
       queryParams.push(type);
+    }
+
+    if (personaId) {
+      whereClauses.push('rf.assigned_persona_id = ?');
+      queryParams.push(personaId);
     }
 
     const whereStr = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';

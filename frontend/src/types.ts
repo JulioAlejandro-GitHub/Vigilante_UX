@@ -37,6 +37,9 @@ export interface Persona {
   name: string;
   userType: UserType;
   thumbnailUrl: string | null;
+  eventCount?: number;
+  lastSeen?: Date | string;
+  lastCamera?: string;
 }
 
 export interface PaginatedResponse<T> {

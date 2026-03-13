@@ -1,31 +1,29 @@
 import React, { useState } from 'react';
-import { useStore } from '../store/useStore';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { personasApi } from '../lib/api';
 import {
   Search,
   UserCircle,
   MoreHorizontal,
   Clock,
-  Camera
+  Camera,
+  Layers
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { RecognitionEvent } from '../types';
+import { Persona } from '../types';
 import { PersonaTipo, PersonaTipoLabels } from '../constants/dictionaries';
 
 export default function ProfilesPage() {
-  const { events } = useStore();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Extract unique profiles based on name for this demo
-  const profilesMap = new Map<string, RecognitionEvent>();
-  events.forEach(e => {
-    if (e.name && e.userType !== 'movimiento' && e.name !== 'Desconocido') {
-      if (!profilesMap.has(e.name)) {
-        profilesMap.set(e.name, e);
-      }
-    }
+  const { data: personasData = [], isLoading } = useQuery<Persona[]>({
+    queryKey: ['personas'],
+    queryFn: personasApi.getAll
   });
 
-  const profiles = Array.from(profilesMap.values()).filter(p => p.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+  const profiles = personasData.filter(p => p.name?.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
     <div className="p-8 space-y-8 max-w-[1600px] mx-auto min-h-screen">
@@ -55,16 +53,21 @@ export default function ProfilesPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.05 }}
-            key={profile.name}
+            key={profile.id}
+            onClick={() => navigate(`/timeline?personaId=${profile.id}`)}
             className="bg-[#111111] border border-white/5 rounded-2xl p-6 hover:border-white/10 transition-colors flex items-center gap-4 group cursor-pointer"
           >
-            <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-white/10 shrink-0">
-              <img
-                src={profile.thumbnailUrl}
-                className="w-full h-full object-cover"
-                alt=""
-                referrerPolicy="no-referrer"
-              />
+            <div className="relative w-20 h-20 rounded-full bg-zinc-800 overflow-hidden border-2 border-white/10 shrink-0 flex items-center justify-center">
+              {profile.thumbnailUrl ? (
+                <img
+                  src={profile.thumbnailUrl}
+                  className="w-full h-full object-cover"
+                  alt={profile.name}
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <UserCircle className="w-8 h-8 text-zinc-500" />
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
@@ -81,12 +84,16 @@ export default function ProfilesPage() {
 
               <div className="space-y-1">
                 <p className="text-xs text-zinc-400 flex items-center gap-2">
+                  <Layers className="w-3 h-3 text-zinc-500" />
+                  Apariciones: {profile.eventCount || 0}
+                </p>
+                <p className="text-xs text-zinc-400 flex items-center gap-2">
                   <Clock className="w-3 h-3 text-zinc-500" />
-                  Último: {new Date(profile.timestamp).toLocaleDateString()}
+                  Último: {profile.lastSeen ? new Date(profile.lastSeen).toLocaleDateString() : 'N/A'}
                 </p>
                 <p className="text-xs text-zinc-400 flex items-center gap-2">
                   <Camera className="w-3 h-3 text-zinc-500" />
-                  {profile.camera}
+                  {profile.lastCamera || 'N/A'}
                 </p>
               </div>
             </div>

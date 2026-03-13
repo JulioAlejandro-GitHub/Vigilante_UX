@@ -42,7 +42,7 @@ export const camerasApi = {
 
 // Events Service
 export const eventsApi = {
-  getAll: async (params?: { page?: number; limit?: number; search?: string; type?: string }) => {
+  getAll: async (params?: { page?: number; limit?: number; search?: string; type?: string; personaId?: string | number }) => {
     const response = await api.get('/events', { params });
     return response.data;
   },

@@ -11,8 +11,10 @@ import {
   Camera
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useStore } from '../store/useStore';
-import { RecognitionEvent, UserType } from '../types';
+import { useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { eventsApi } from '../lib/api';
+import { RecognitionEvent, UserType, PaginatedResponse } from '../types';
 import { PersonaTipo, PersonaTipoLabels } from '../constants/dictionaries';
 
 type ZoomLevel = '24h' | '12h' | '6h' | '1h' | '30min';
@@ -26,7 +28,16 @@ const ZOOM_CONFIG: Record<ZoomLevel, { hours: number; pixelsPerHour: number }> =
 };
 
 export default function TimelinePage() {
-  const { events } = useStore();
+  const [searchParams] = useSearchParams();
+  const personaId = searchParams.get('personaId');
+
+  const { data: eventsData, isLoading } = useQuery<PaginatedResponse<RecognitionEvent>>({
+    queryKey: ['timeline-events', personaId],
+    queryFn: () => eventsApi.getAll({ limit: 1000, personaId: personaId || undefined }),
+  });
+
+  const events = eventsData?.data || [];
+
   const [zoom, setZoom] = useState<ZoomLevel>('6h');
   const [selectedEvent, setSelectedEvent] = useState<RecognitionEvent | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
