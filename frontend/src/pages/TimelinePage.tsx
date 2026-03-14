@@ -47,11 +47,12 @@ export default function TimelinePage() {
   const config = ZOOM_CONFIG[zoom];
   const totalWidth = 24 * config.pixelsPerHour;
 
-  const todayEvents = useMemo(() => {
-    return events.filter(e => {
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
-      return new Date(e.timestamp) >= startOfDay;
+  const mappedEvents = useMemo(() => {
+    return events.map(event => {
+      if (event.userType === 'identificado' && event.persona_tipo) {
+        return { ...event, userType: event.persona_tipo as UserType };
+      }
+      return event;
     });
   }, [events]);
 
