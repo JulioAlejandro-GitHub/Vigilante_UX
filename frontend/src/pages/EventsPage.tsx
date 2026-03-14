@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  Search, 
-  Camera, 
-  ChevronLeft, 
+import {
+  Search,
+  Camera,
+  ChevronLeft,
   ChevronRight,
   MoreHorizontal,
   X,
@@ -101,12 +101,12 @@ export default function EventsPage() {
           <h1 className="text-3xl font-bold text-white tracking-tight">Eventos de Reconocimiento</h1>
           <p className="text-zinc-500 mt-1">Historial completo de detecciones faciales.</p>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Buscar por nombre o cámara..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -118,9 +118,8 @@ export default function EventsPage() {
               <button
                 key={type}
                 onClick={() => setFilterType(type as any)}
-                className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all whitespace-nowrap ${
-                  filterType === type ? 'bg-emerald-500 text-black' : 'text-zinc-500 hover:text-zinc-300'
-                }`}
+                className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all whitespace-nowrap ${filterType === type ? 'bg-emerald-500 text-black' : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
               >
                 {type === 'all' ? 'Todos' : PersonaTipoLabels[type as typeof PersonaTipo[keyof typeof PersonaTipo]]}
               </button>
@@ -141,20 +140,19 @@ export default function EventsPage() {
               className="bg-[#111111] border border-white/5 rounded-2xl overflow-hidden group cursor-pointer hover:border-emerald-500/30 transition-all"
             >
               <div className="relative aspect-square">
-                <img 
+                <img
                   src={event.thumbnailUrl}
-                  className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" 
+                  className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
                   alt=""
                   referrerPolicy="no-referrer"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
                 <div className="absolute top-3 left-3">
-                  <span className={`text-[9px] font-bold uppercase px-2 py-1 rounded-md backdrop-blur-md ${
-                    event.userType === PersonaTipo.LADRON ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                    event.userType === PersonaTipo.SOCIO ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                    event.userType === 'movimiento' ? 'bg-amber-500/10 text-amber-400' :
-                    'bg-white/10 text-white border border-white/20'
-                  }`}>
+                  <span className={`text-[9px] font-bold uppercase px-2 py-1 rounded-md backdrop-blur-md ${event.userType === PersonaTipo.LADRON ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                      event.userType === PersonaTipo.SOCIO ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                        event.userType === 'movimiento' ? 'bg-amber-500/10 text-amber-400' :
+                          'bg-white/10 text-white border border-white/20'
+                    }`}>
                     {event.userType === 'movimiento' ? 'Movimiento' : PersonaTipoLabels[event.userType as typeof PersonaTipo[keyof typeof PersonaTipo]]}
                   </span>
                 </div>
@@ -195,7 +193,7 @@ export default function EventsPage() {
       <footer className="flex items-center justify-between pt-4 border-t border-white/5 shrink-0">
         <p className="text-xs text-zinc-500">Mostrando {currentEvents.length} eventos (Total: {eventsData?.pagination.total || 0})</p>
         <div className="flex items-center gap-2">
-          <button 
+          <button
             disabled={page === 1}
             onClick={() => setPage(p => p - 1)}
             className="p-2 bg-[#111111] border border-white/5 rounded-xl text-zinc-500 hover:text-white disabled:opacity-50 transition-colors"
@@ -203,7 +201,7 @@ export default function EventsPage() {
             <ChevronLeft className="w-5 h-5" />
           </button>
           <span className="text-xs font-bold text-white px-4">Página {page} de {Math.max(1, totalPages)}</span>
-          <button 
+          <button
             disabled={page === totalPages || totalPages === 0}
             onClick={() => setPage(p => p + 1)}
             className="p-2 bg-[#111111] border border-white/5 rounded-xl text-zinc-500 hover:text-white disabled:opacity-50 transition-colors"
@@ -217,7 +215,7 @@ export default function EventsPage() {
       <AnimatePresence>
         {selectedEvent && (
           <>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -233,7 +231,7 @@ export default function EventsPage() {
             >
               <div className="p-6 border-b border-white/5 flex items-center justify-between">
                 <h2 className="font-bold text-white">Detalle de Detección</h2>
-                <button 
+                <button
                   onClick={() => setSelectedEvent(null)}
                   className="p-2 hover:bg-white/5 rounded-full text-zinc-500 transition-colors"
                 >
@@ -255,21 +253,20 @@ export default function EventsPage() {
                   )}
 
                   <div className="flex items-center gap-4">
-                    <img 
+                    <img
                       src={selectedEvent.thumbnailUrl}
-                      className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-500/30" 
+                      className="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-500/30"
                       alt=""
                       referrerPolicy="no-referrer"
                     />
                     <div>
                       <h3 className="text-xl font-bold text-white">{selectedEvent.name || 'Desconocido'}</h3>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${
-                          selectedEvent.userType === PersonaTipo.LADRON ? 'bg-red-500/10 text-red-400' :
-                          selectedEvent.userType === PersonaTipo.SOCIO ? 'bg-emerald-500/10 text-emerald-400' :
-                          selectedEvent.userType === 'movimiento' ? 'bg-amber-500/10 text-amber-400' :
-                          'bg-zinc-500/10 text-zinc-400'
-                        }`}>
+                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${selectedEvent.userType === PersonaTipo.LADRON ? 'bg-red-500/10 text-red-400' :
+                            selectedEvent.userType === PersonaTipo.SOCIO ? 'bg-emerald-500/10 text-emerald-400' :
+                              selectedEvent.userType === 'movimiento' ? 'bg-amber-500/10 text-amber-400' :
+                                'bg-zinc-500/10 text-zinc-400'
+                          }`}>
                           {selectedEvent.userType === 'movimiento' ? 'Movimiento' : PersonaTipoLabels[selectedEvent.userType as typeof PersonaTipo[keyof typeof PersonaTipo]]}
                         </span>
                         <span className="text-xs font-mono text-zinc-500">{(selectedEvent.confidence * 100).toFixed(1)}% confianza</span>
