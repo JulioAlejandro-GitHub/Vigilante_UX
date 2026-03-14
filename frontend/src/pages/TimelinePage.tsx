@@ -210,7 +210,7 @@ export default function TimelinePage() {
             >
               <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{cat === 'movimiento' ? 'Movimiento' : PersonaTipoLabels[cat as typeof PersonaTipo[keyof typeof PersonaTipo]]}</span>
               <span className="text-[9px] text-zinc-700 mt-1">
-                {todayEvents.filter(e => e.userType === cat).length} eventos
+                {mappedEvents.filter(e => e.userType === cat).length} eventos
               </span>
             </div>
           ))}
