@@ -8,6 +8,10 @@ export interface RecognitionEvent {
   camera: string;
   userType: UserType;
   name?: string;
+  persona_tipo?: UserType;
+  oi_label?: string;
+  risk_level?: string;
+  times_seen?: number;
   confidence: number;
   thumbnailUrl: string;
   previewUrl?: string;
@@ -28,8 +32,11 @@ export interface DashboardStats {
   activeCameras: number;
   inactiveCameras: number;
   recognitions48h: number;
-  unknowns48h: number;
-  thieves48h: number;
+  totalObserved?: number;
+  unknownsActive?: number;
+  thievesActive?: number;
+  suspectsActive?: number;
+  recurringIdentities?: number;
 }
 
 export interface Persona {

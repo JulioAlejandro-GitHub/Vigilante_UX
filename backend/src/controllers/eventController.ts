@@ -54,11 +54,15 @@ export const getEvents = async (req: Request, res: Response) => {
         COALESCE(rf.face_preview_url, rf.face_image_url) as thumbnailUrl,
         rf.face_preview_url as previewUrl,
         rf.face_image_url as cropUrl,
-        p.nombre as name
+        p.nombre as name,
+        oi.current_label as oi_label,
+        oi.risk_level as risk_level,
+        oi.times_seen as times_seen
       FROM recognition_face rf
       JOIN recognition_event re ON rf.recognition_event_id = re.recognition_event_id
       JOIN camara c ON re.camara_id = c.camara_id
       LEFT JOIN persona p ON rf.assigned_persona_id = p.persona_id
+      LEFT JOIN observed_identity oi ON rf.observed_identity_id = oi.observed_identity_id
       ${whereStr}
       ORDER BY re.occurred_at DESC
       LIMIT ? OFFSET ?

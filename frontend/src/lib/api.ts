@@ -77,5 +77,9 @@ export const dashboardApi = {
   getCriticalAlerts: async () => {
     const response = await api.get('/dashboard/critical-alerts');
     return response.data;
+  },
+  getActiveAlerts: async () => {
+    const response = await api.get('/dashboard/active-alerts');
+    return response.data;
   }
 };

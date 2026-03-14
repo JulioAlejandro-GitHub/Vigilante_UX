@@ -6,6 +6,7 @@ import {
   UserX, 
   ShieldAlert,
   Loader2,
+  Users
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useQuery } from '@tanstack/react-query';
@@ -32,12 +33,12 @@ export default function DashboardPage() {
   });
 
   const stats = [
-    { label: 'Cámaras Totales', value: statsData?.totalCameras || 0, icon: Camera, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-    { label: 'Activas', value: statsData?.activeCameras || 0, icon: Activity, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-    { label: 'Inactivas', value: statsData?.inactiveCameras || 0, icon: AlertTriangle, color: 'text-amber-400', bg: 'bg-amber-400/10' },
-    { label: 'Reconocimientos (48h)', value: statsData?.recognitions48h || 0, icon: Activity, color: 'text-purple-400', bg: 'bg-purple-400/10' },
-    { label: 'Desconocidos (48h)', value: statsData?.unknowns48h || 0, icon: UserX, color: 'text-zinc-400', bg: 'bg-zinc-400/10' },
-    { label: 'Ladrones (48h)', value: statsData?.thieves48h || 0, icon: ShieldAlert, color: 'text-red-400', bg: 'bg-red-400/10' },
+    { label: 'Cámaras Activas', value: statsData?.activeCameras || 0, icon: Activity, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+    { label: 'Reconocimientos (48h)', value: statsData?.recognitions48h || 0, icon: Camera, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+    { label: 'Identidades (Total)', value: statsData?.totalObserved || 0, icon: Users, color: 'text-purple-400', bg: 'bg-purple-400/10' },
+    { label: 'Desconocidos Activos', value: statsData?.unknownsActive || 0, icon: UserX, color: 'text-zinc-400', bg: 'bg-zinc-400/10' },
+    { label: 'Recurrentes', value: statsData?.recurringIdentities || 0, icon: Activity, color: 'text-amber-400', bg: 'bg-amber-400/10' },
+    { label: 'Ladrones Activos', value: statsData?.thievesActive || 0, icon: ShieldAlert, color: 'text-red-400', bg: 'bg-red-400/10' },
   ];
 
   return (
@@ -118,16 +119,22 @@ export default function DashboardPage() {
                               <Activity className="w-4 h-4 text-zinc-500" />
                             </div>
                           )}
-                          <span className="text-sm font-medium text-white">{event.name || 'Desconocido'}</span>
+                          <div>
+                            <span className="text-sm font-medium text-white block">{event.name || event.oi_label || 'Desconocido'}</span>
+                            {event.times_seen && event.times_seen > 1 && (
+                               <span className="text-[10px] text-amber-500 font-bold block">Visto {event.times_seen}x</span>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md ${
-                          event.userType === RecognitionFaceFinalLabel.LADRON ? 'bg-red-500/10 text-red-400' :
+                          event.userType === RecognitionFaceFinalLabel.LADRON || event.oi_label === 'ladron' ? 'bg-red-500/10 text-red-400' :
                           event.userType === RecognitionFaceFinalLabel.IDENTIFICADO ? 'bg-emerald-500/10 text-emerald-400' :
+                          event.oi_label === 'sospechoso' ? 'bg-amber-500/10 text-amber-400' :
                           'bg-zinc-500/10 text-zinc-400'
                         }`}>
-                          {RecognitionFaceFinalLabelLabels[event.userType as typeof RecognitionFaceFinalLabel[keyof typeof RecognitionFaceFinalLabel]] || 'Otro'}
+                          {RecognitionFaceFinalLabelLabels[event.userType as typeof RecognitionFaceFinalLabel[keyof typeof RecognitionFaceFinalLabel]] || event.oi_label || 'Otro'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-zinc-400">{event.camera}</td>

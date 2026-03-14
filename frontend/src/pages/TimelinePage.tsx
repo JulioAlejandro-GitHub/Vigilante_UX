@@ -8,7 +8,8 @@ import {
   ExternalLink,
   Trash2,
   Edit3,
-  Camera
+  Camera,
+  Activity
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSearchParams } from 'react-router-dom';
@@ -42,7 +43,7 @@ export default function TimelinePage() {
   const [selectedEvent, setSelectedEvent] = useState<RecognitionEvent | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const categories: UserType[] = [PersonaTipo.SOCIO, PersonaTipo.EMPLEADO, PersonaTipo.FAMILIA, PersonaTipo.OTRO, PersonaTipo.LADRON, 'movimiento'];
+  const categories: UserType[] = [PersonaTipo.SOCIO, PersonaTipo.EMPLEADO, PersonaTipo.FAMILIA, PersonaTipo.OTRO, PersonaTipo.LADRON, 'movimiento', 'desconocido' as any];
 
   const config = ZOOM_CONFIG[zoom];
   const totalWidth = 24 * config.pixelsPerHour;
@@ -52,9 +53,23 @@ export default function TimelinePage() {
       if (event.userType === 'identificado' && event.persona_tipo) {
         return { ...event, userType: event.persona_tipo as UserType };
       }
+      if (event.oi_label && event.oi_label !== 'unknown' && event.oi_label !== 'desconocido') {
+         return { ...event, userType: event.oi_label as UserType };
+      }
       return event;
     });
   }, [events]);
+
+  useEffect(() => {
+    const eventId = searchParams.get('eventId');
+
+    if (eventId && events.length > 0) {
+      const eventToSelect = mappedEvents.find(e => e.id === eventId || String(e.id) === eventId);
+      if (eventToSelect) {
+        setSelectedEvent(eventToSelect);
+      }
+    }
+  }, [searchParams, mappedEvents, events]);
 
   const getPosition = (date: Date) => {
     const d = new Date(date);
@@ -258,7 +273,7 @@ export default function TimelinePage() {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-xl font-bold text-white">{selectedEvent.name || 'Desconocido'}</h3>
+                      <h3 className="text-xl font-bold text-white">{selectedEvent.name || selectedEvent.oi_label || 'Desconocido'}</h3>
                       <p className="text-zinc-500 text-sm flex items-center gap-2 mt-1">
                         <Camera className="w-3 h-3" />
                         {selectedEvent.camera}
@@ -270,7 +285,7 @@ export default function TimelinePage() {
                         selectedEvent.userType === PersonaTipo.SOCIO ? 'bg-emerald-500/10 text-emerald-400' :
                         'bg-zinc-500/10 text-zinc-400'
                       }`}>
-                        {selectedEvent.userType === 'movimiento' ? 'Movimiento' : PersonaTipoLabels[selectedEvent.userType as typeof PersonaTipo[keyof typeof PersonaTipo]]}
+                        {selectedEvent.userType === 'movimiento' ? 'Movimiento' : PersonaTipoLabels[selectedEvent.userType as typeof PersonaTipo[keyof typeof PersonaTipo]] || selectedEvent.userType}
                       </span>
                       <p className="text-xs font-mono text-zinc-500 mt-2">
                         {(selectedEvent.confidence * 100).toFixed(1)}% confianza
@@ -291,6 +306,18 @@ export default function TimelinePage() {
                     </span>
                   </div>
                 </div>
+
+                {selectedEvent.times_seen && selectedEvent.times_seen > 1 && (
+                  <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex items-start gap-3">
+                    <Activity className="w-5 h-5 text-amber-500 shrink-0" />
+                    <div>
+                      <h4 className="text-sm font-bold text-amber-500">Identidad Recurrente</h4>
+                      <p className="text-xs text-amber-500/80 mt-1">
+                        Esta persona ha sido detectada {selectedEvent.times_seen} veces en las cámaras.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {selectedEvent.history && (
                   <div className="space-y-4">

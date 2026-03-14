@@ -3,12 +3,14 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLocation } from 'react-router-dom';
+import GlobalAlertDialog from './GlobalAlertDialog';
 
 export default function MainLayout() {
   const location = useLocation();
 
   return (
-    <div className="flex h-screen bg-[#050505] text-zinc-300 font-sans selection:bg-emerald-500/30 selection:text-emerald-200 overflow-hidden">
+    <div className="flex h-screen bg-[#050505] text-zinc-300 font-sans selection:bg-emerald-500/30 selection:text-emerald-200 overflow-hidden relative">
+      <GlobalAlertDialog />
       <Sidebar />
 
       <main className="flex-1 overflow-hidden relative">
