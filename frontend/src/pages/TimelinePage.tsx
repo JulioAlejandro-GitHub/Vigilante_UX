@@ -157,7 +157,7 @@ export default function TimelinePage() {
                 ))}
 
                 {/* Events in this category */}
-                {todayEvents
+                {mappedEvents
                   .filter(e => e.userType === cat)
                   .map(event => (
                     <motion.div
