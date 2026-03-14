@@ -3,8 +3,4 @@
 > ts-node src/server.ts
 
 Backend de Vigilante ejecutándose en el puerto 8085
-Conectado exitosamente a la base de datos MySQL (Vigilante)
-loginloginloginloginlogin
-loginloginloginloginlogin
-loginloginloginloginlogin
-loginloginloginloginlogin
+Error al conectar a la base de datos:

@@ -1,0 +1,4 @@
+Failed to start mysql.service: Interactive authentication required.
+See system logs and 'systemctl status mysql.service' for details.
+./start_db.sh: line 3: mysql: command not found
+./start_db.sh: line 4: backend/Vigilante_v2_configurable.sql: No such file or directory

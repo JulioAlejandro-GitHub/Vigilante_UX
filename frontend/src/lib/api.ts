@@ -42,8 +42,12 @@ export const camerasApi = {
 
 // Events Service
 export const eventsApi = {
-  getAll: async (params?: { page?: number; limit?: number; search?: string; type?: string; personaId?: string | number }) => {
+  getAll: async (params?: { page?: number; limit?: number; search?: string; type?: string; personaId?: string | number; oiId?: string | number }) => {
     const response = await api.get('/events', { params });
+    return response.data;
+  },
+  getGrouped: async (params?: { page?: number; limit?: number; search?: string; type?: string }) => {
+    const response = await api.get('/events/grouped', { params });
     return response.data;
   },
   updateSubject: async (id: number | string, data: { assigned_persona_id: number | string, final_label?: string }) => {

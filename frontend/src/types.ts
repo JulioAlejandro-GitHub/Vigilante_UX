@@ -20,6 +20,22 @@ export interface RecognitionEvent {
   history?: { timestamp: Date; camera: string }[];
 }
 
+export interface GroupedEvent {
+  subject_id: string;
+  timestamp: Date;
+  eventCount: number;
+  id: string;
+  camera: string;
+  userType: UserType;
+  confidence: number;
+  thumbnailUrl: string;
+  name?: string;
+  persona_tipo?: UserType;
+  oi_label?: string;
+  persona_id?: number;
+  oi_id?: number;
+}
+
 export interface CameraStats {
   id: string;
   name: string;

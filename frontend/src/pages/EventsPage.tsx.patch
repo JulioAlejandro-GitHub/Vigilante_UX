@@ -1,0 +1,66 @@
+<<<<<<< SEARCH
+import { eventsApi, personasApi } from '../lib/api';
+import { RecognitionEvent, UserType, Persona, PaginatedResponse } from '../types';
+=======
+import { eventsApi, personasApi } from '../lib/api';
+import { RecognitionEvent, GroupedEvent, UserType, Persona, PaginatedResponse } from '../types';
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+  const [selectedEvent, setSelectedEvent] = useState<RecognitionEvent | null>(null);
+  const [page, setPage] = useState(1);
+  const [isEditingSubject, setIsEditingSubject] = useState(false);
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string>('');
+  const itemsPerPage = 12;
+
+  const { data: eventsData, isLoading } = useQuery<PaginatedResponse<RecognitionEvent>>({
+    queryKey: ['events', page, itemsPerPage, searchTerm, filterType],
+    queryFn: () => eventsApi.getAll({
+      page,
+      limit: itemsPerPage,
+      search: searchTerm,
+      type: filterType === 'all' ? undefined : filterType
+    }),
+  });
+=======
+  const [viewMode, setViewMode] = useState<'grouped' | 'list'>('grouped');
+  const [selectedEvent, setSelectedEvent] = useState<RecognitionEvent | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<GroupedEvent | null>(null);
+  const [page, setPage] = useState(1);
+  const [isEditingSubject, setIsEditingSubject] = useState(false);
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string>('');
+  const itemsPerPage = 12;
+
+  const { data: eventsData, isLoading: isLoadingEvents } = useQuery<PaginatedResponse<RecognitionEvent>>({
+    queryKey: ['events', page, itemsPerPage, searchTerm, filterType],
+    queryFn: () => eventsApi.getAll({
+      page,
+      limit: itemsPerPage,
+      search: searchTerm,
+      type: filterType === 'all' ? undefined : filterType
+    }),
+    enabled: viewMode === 'list' || selectedSubject !== null,
+  });
+
+  const { data: groupedData, isLoading: isLoadingGrouped } = useQuery<PaginatedResponse<GroupedEvent>>({
+    queryKey: ['grouped-events', page, itemsPerPage, searchTerm, filterType],
+    queryFn: () => eventsApi.getGrouped({
+      page,
+      limit: itemsPerPage,
+      search: searchTerm,
+      type: filterType === 'all' ? undefined : filterType
+    }),
+    enabled: viewMode === 'grouped' && selectedSubject === null,
+  });
+
+  const isLoading = viewMode === 'grouped' ? isLoadingGrouped : isLoadingEvents;
+  const currentEvents = viewMode === 'grouped' ? (groupedData?.data || []) : (eventsData?.data || []);
+  const totalPages = viewMode === 'grouped' ? (groupedData?.pagination.totalPages || 0) : (eventsData?.pagination.totalPages || 0);
+  const totalItems = viewMode === 'grouped' ? (groupedData?.pagination.total || 0) : (eventsData?.pagination.total || 0);
+
+  const subjectEvents = eventsData?.data?.filter(e => {
+    if (!selectedSubject) return false;
+    if (selectedSubject.persona_id && e.persona_tipo) return e.name === selectedSubject.name;
+    if (selectedSubject.oi_id && e.oi_label) return e.oi_label === selectedSubject.oi_label;
+    return e.id === selectedSubject.id;
+  }) || [];
+>>>>>>> REPLACE

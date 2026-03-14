@@ -15,7 +15,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { eventsApi, personasApi } from '../lib/api';
-import { RecognitionEvent, UserType, Persona, PaginatedResponse } from '../types';
+import { RecognitionEvent, GroupedEvent, UserType, Persona, PaginatedResponse } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { PersonaTipo, PersonaTipoLabels } from '../constants/dictionaries';
 
@@ -29,20 +29,46 @@ export default function EventsPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<UserType | 'all'>('all');
+  const [viewMode, setViewMode] = useState<'grouped' | 'list'>('grouped');
   const [selectedEvent, setSelectedEvent] = useState<RecognitionEvent | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<GroupedEvent | null>(null);
   const [page, setPage] = useState(1);
+  const [subjectPage, setSubjectPage] = useState(1);
   const [isEditingSubject, setIsEditingSubject] = useState(false);
   const [selectedPersonaId, setSelectedPersonaId] = useState<string>('');
   const itemsPerPage = 12;
 
-  const { data: eventsData, isLoading } = useQuery<PaginatedResponse<RecognitionEvent>>({
+  const { data: eventsData, isLoading: isLoadingEvents } = useQuery<PaginatedResponse<RecognitionEvent>>({
     queryKey: ['events', page, itemsPerPage, searchTerm, filterType],
     queryFn: () => eventsApi.getAll({
       page,
       limit: itemsPerPage,
       search: searchTerm,
+      type: filterType === 'all' ? undefined : filterType,
+    }),
+    enabled: viewMode === 'list',
+  });
+
+  const { data: subjectEventsData, isLoading: isLoadingSubjectEvents } = useQuery<PaginatedResponse<RecognitionEvent>>({
+    queryKey: ['events-subject', subjectPage, itemsPerPage, selectedSubject?.persona_id, selectedSubject?.oi_id],
+    queryFn: () => eventsApi.getAll({
+      page: subjectPage,
+      limit: itemsPerPage,
+      personaId: selectedSubject?.persona_id,
+      oiId: selectedSubject?.oi_id,
+    }),
+    enabled: selectedSubject !== null,
+  });
+
+  const { data: groupedData, isLoading: isLoadingGrouped } = useQuery<PaginatedResponse<GroupedEvent>>({
+    queryKey: ['grouped-events', page, itemsPerPage, searchTerm, filterType],
+    queryFn: () => eventsApi.getGrouped({
+      page,
+      limit: itemsPerPage,
+      search: searchTerm,
       type: filterType === 'all' ? undefined : filterType
     }),
+    enabled: viewMode === 'grouped' && selectedSubject === null,
   });
 
   const { data: personasData } = useQuery<Persona[]>({
@@ -50,6 +76,8 @@ export default function EventsPage() {
     queryFn: personasApi.getAll,
     enabled: isEditingSubject
   });
+
+  const subjectEvents = subjectEventsData?.data || [];
 
   const deleteMutation = useMutation({
     mutationFn: eventsApi.delete,
@@ -91,8 +119,10 @@ export default function EventsPage() {
     }
   };
 
-  const totalPages = eventsData?.pagination.totalPages || 0;
-  const currentEvents = eventsData?.data || [];
+  const isLoading = viewMode === 'grouped' ? isLoadingGrouped : isLoadingEvents;
+  const currentEvents = (viewMode === 'grouped' ? groupedData?.data : eventsData?.data) || [];
+  const totalPages = (viewMode === 'grouped' ? groupedData?.pagination.totalPages : eventsData?.pagination.totalPages) || 0;
+  const totalItems = (viewMode === 'grouped' ? groupedData?.pagination.total : eventsData?.pagination.total) || 0;
 
   return (
     <div className="p-8 space-y-8 max-w-[1600px] mx-auto h-screen flex flex-col">
@@ -103,6 +133,20 @@ export default function EventsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <div className="flex bg-[#111111] border border-white/5 rounded-xl p-1">
+            <button
+              onClick={() => { setViewMode('grouped'); setPage(1); setSelectedSubject(null); }}
+              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${viewMode === 'grouped' ? 'bg-emerald-500 text-black' : 'text-zinc-500 hover:text-white'}`}
+            >
+              Sujetos
+            </button>
+            <button
+              onClick={() => { setViewMode('list'); setPage(1); setSelectedSubject(null); }}
+              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${viewMode === 'list' ? 'bg-emerald-500 text-black' : 'text-zinc-500 hover:text-white'}`}
+            >
+              Eventos
+            </button>
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
             <input
@@ -130,54 +174,64 @@ export default function EventsPage() {
 
       <div className="flex-1 overflow-y-auto min-h-0">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {currentEvents.map((event, i) => (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.02 }}
-              key={event.id}
-              onClick={() => setSelectedEvent(event)}
-              className="bg-[#111111] border border-white/5 rounded-2xl overflow-hidden group cursor-pointer hover:border-emerald-500/30 transition-all"
-            >
-              <div className="relative aspect-square">
-                <img
-                  src={event.thumbnailUrl}
-                  className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
-                  alt=""
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
-                <div className="absolute top-3 left-3">
-                  <span className={`text-[9px] font-bold uppercase px-2 py-1 rounded-md backdrop-blur-md ${event.userType === PersonaTipo.LADRON ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                      event.userType === PersonaTipo.SOCIO ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                        event.userType === 'movimiento' ? 'bg-amber-500/10 text-amber-400' :
-                          'bg-white/10 text-white border border-white/20'
-                    }`}>
-                    {event.userType === 'movimiento' ? 'Movimiento' : PersonaTipoLabels[event.userType as typeof PersonaTipo[keyof typeof PersonaTipo]]}
-                  </span>
-                </div>
-                <div className="absolute bottom-3 left-3 right-3">
-                  <p className="text-white font-bold text-sm truncate">{event.name || 'Desconocido'}</p>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-[10px] text-zinc-400 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {currentEvents.map((item, i) => {
+            const isGrouped = viewMode === 'grouped';
+            const event = item as any; // Cast for shared properties
+
+            return (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.02 }}
+                key={isGrouped ? event.subject_id : event.id}
+                onClick={() => isGrouped ? setSelectedSubject(event) : setSelectedEvent(event)}
+                className="bg-[#111111] border border-white/5 rounded-2xl overflow-hidden group cursor-pointer hover:border-emerald-500/30 transition-all"
+              >
+                <div className="relative aspect-square">
+                  <img
+                    src={event.thumbnailUrl}
+                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+                    alt=""
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute top-3 left-3 flex flex-col gap-1">
+                    <span className={`text-[9px] font-bold uppercase px-2 py-1 rounded-md backdrop-blur-md ${event.userType === PersonaTipo.LADRON ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                        event.userType === PersonaTipo.SOCIO ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                          event.userType === 'movimiento' ? 'bg-amber-500/10 text-amber-400' :
+                            'bg-white/10 text-white border border-white/20'
+                      }`}>
+                      {event.userType === 'movimiento' ? 'Movimiento' : PersonaTipoLabels[event.userType as typeof PersonaTipo[keyof typeof PersonaTipo]]}
                     </span>
-                    <span className="text-[10px] font-mono text-emerald-400">{(event.confidence * 100).toFixed(0)}%</span>
+                    {isGrouped && event.eventCount > 1 && (
+                      <span className="text-[10px] font-bold text-white bg-black/50 px-2 py-1 rounded-md backdrop-blur-md self-start">
+                        {event.eventCount} eventos
+                      </span>
+                    )}
+                  </div>
+                  <div className="absolute bottom-3 left-3 right-3">
+                    <p className="text-white font-bold text-sm truncate">{event.name || event.oi_label || 'Desconocido'}</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-[10px] text-zinc-400 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      <span className="text-[10px] font-mono text-emerald-400">{(event.confidence * 100).toFixed(0)}%</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="p-4 flex items-center justify-between border-t border-white/5">
-                <span className="text-[10px] text-zinc-500 flex items-center gap-1 uppercase tracking-wider font-bold truncate">
-                  <Camera className="w-3 h-3 shrink-0" />
-                  <span className="truncate">{event.camera}</span>
-                </span>
-                <button className="p-1.5 hover:bg-white/5 rounded-lg text-zinc-500 transition-colors">
-                  <MoreHorizontal className="w-4 h-4" />
-                </button>
-              </div>
-            </motion.div>
-          ))}
+                <div className="p-4 flex items-center justify-between border-t border-white/5">
+                  <span className="text-[10px] text-zinc-500 flex items-center gap-1 uppercase tracking-wider font-bold truncate">
+                    <Camera className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{event.camera}</span>
+                  </span>
+                  <button className="p-1.5 hover:bg-white/5 rounded-lg text-zinc-500 transition-colors">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
@@ -191,7 +245,7 @@ export default function EventsPage() {
       </div>
 
       <footer className="flex items-center justify-between pt-4 border-t border-white/5 shrink-0">
-        <p className="text-xs text-zinc-500">Mostrando {currentEvents.length} eventos (Total: {eventsData?.pagination.total || 0})</p>
+        <p className="text-xs text-zinc-500">Mostrando {currentEvents.length} {viewMode === 'grouped' ? 'sujetos' : 'eventos'} (Total: {totalItems})</p>
         <div className="flex items-center gap-2">
           <button
             disabled={page === 1}
@@ -211,7 +265,7 @@ export default function EventsPage() {
         </div>
       </footer>
 
-      {/* Detail Drawer */}
+      {/* Detail Drawer for Event */}
       <AnimatePresence>
         {selectedEvent && (
           <>
@@ -354,6 +408,164 @@ export default function EventsPage() {
                     </div>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Detail Drawer for Subject */}
+      <AnimatePresence>
+        {selectedSubject && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedSubject(null)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
+            />
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed right-0 top-0 bottom-0 w-full max-w-xl bg-[#0A0A0A] border-l border-white/10 z-[70] flex flex-col shadow-2xl"
+            >
+              <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                <h2 className="font-bold text-white">Detalle de Sujeto</h2>
+                <button
+                  onClick={() => setSelectedSubject(null)}
+                  className="p-2 hover:bg-white/5 rounded-full text-zinc-500 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                <div className="flex items-center gap-4">
+                  <img
+                    src={selectedSubject.thumbnailUrl}
+                    className="w-20 h-20 rounded-2xl object-cover border-2 border-emerald-500/30"
+                    alt=""
+                    referrerPolicy="no-referrer"
+                  />
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">{selectedSubject.name || selectedSubject.oi_label || 'Desconocido'}</h3>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${selectedSubject.userType === PersonaTipo.LADRON ? 'bg-red-500/10 text-red-400' :
+                          selectedSubject.userType === PersonaTipo.SOCIO ? 'bg-emerald-500/10 text-emerald-400' :
+                            selectedSubject.userType === 'movimiento' ? 'bg-amber-500/10 text-amber-400' :
+                              'bg-zinc-500/10 text-zinc-400'
+                        }`}>
+                        {selectedSubject.userType === 'movimiento' ? 'Movimiento' : PersonaTipoLabels[selectedSubject.userType as typeof PersonaTipo[keyof typeof PersonaTipo]]}
+                      </span>
+                      <span className="text-xs text-zinc-400">{selectedSubject.eventCount} detecciones</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Resumen</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center justify-between p-4 bg-white/[0.02] rounded-2xl border border-white/5">
+                      <div className="flex items-center gap-3">
+                        <Camera className="w-4 h-4 text-zinc-500" />
+                        <span className="text-sm text-zinc-400">Última Cámara</span>
+                      </div>
+                      <span className="text-sm text-white font-bold">{selectedSubject.camera}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-white/[0.02] rounded-2xl border border-white/5">
+                      <div className="flex items-center gap-3">
+                        <Clock className="w-4 h-4 text-zinc-500" />
+                        <span className="text-sm text-zinc-400">Última Vez</span>
+                      </div>
+                      <span className="text-sm text-white font-bold">{new Date(selectedSubject.timestamp).toLocaleDateString()} {new Date(selectedSubject.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Historial de Detecciones</h4>
+                  </div>
+
+                  {isLoadingSubjectEvents ? (
+                    <div className="flex justify-center p-8">
+                      <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {subjectEvents.map((event) => (
+                        <div key={event.id} className="flex items-center gap-4 p-3 bg-white/[0.02] rounded-2xl border border-white/5 hover:border-white/10 transition-colors group">
+                          <img
+                            src={event.thumbnailUrl}
+                            className="w-12 h-12 rounded-xl object-cover"
+                            alt=""
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-bold text-white truncate">{event.camera}</span>
+                              <span className="text-[10px] font-mono text-emerald-400">{(event.confidence * 100).toFixed(0)}%</span>
+                            </div>
+                            <div className="flex items-center justify-between mt-1">
+                              <span className="text-xs text-zinc-500">
+                                {new Date(event.timestamp).toLocaleDateString()} {new Date(event.timestamp).toLocaleTimeString()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => {
+                                setSelectedEvent(event);
+                              }}
+                              className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white transition-colors"
+                              title="Ver detalle"
+                            >
+                              <Search className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.confirm('¿Estás seguro de que quieres eliminar este evento?')) {
+                                  deleteMutation.mutate(event.id);
+                                }
+                              }}
+                              className="p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg text-red-400 transition-colors"
+                              title="Eliminar evento"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {subjectEvents.length === 0 && (
+                        <p className="text-center text-sm text-zinc-500 py-4">No hay eventos para mostrar.</p>
+                      )}
+
+                      {subjectEventsData && subjectEventsData.pagination.totalPages > 1 && (
+                        <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                          <button
+                            disabled={subjectPage === 1}
+                            onClick={() => setSubjectPage(p => p - 1)}
+                            className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-zinc-400 hover:text-white disabled:opacity-50 transition-colors"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+                          <span className="text-xs font-bold text-zinc-400">Pág {subjectPage} de {subjectEventsData.pagination.totalPages}</span>
+                          <button
+                            disabled={subjectPage === subjectEventsData.pagination.totalPages}
+                            onClick={() => setSubjectPage(p => p + 1)}
+                            className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-zinc-400 hover:text-white disabled:opacity-50 transition-colors"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
           </>

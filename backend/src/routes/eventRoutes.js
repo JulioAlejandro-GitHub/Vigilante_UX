@@ -4,6 +4,7 @@ const express_1 = require("express");
 const eventController_1 = require("../controllers/eventController");
 const router = (0, express_1.Router)();
 router.get('/', eventController_1.getEvents);
+router.get('/grouped', eventController_1.getEventsGrouped);
 router.put('/:id/subject', eventController_1.updateEventSubject);
 router.delete('/:id', eventController_1.deleteEvent);
 exports.default = router;
