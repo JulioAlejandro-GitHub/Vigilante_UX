@@ -20,10 +20,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { PersonaTipo, PersonaTipoLabels } from '../constants/dictionaries';
 
 // Decisión UX sobre agrupación:
-// He optado por mantener un listado individual simple con paginación funcional en el backend.
-// Para operaciones de seguridad, ver la secuencia de eventos individuales suele ser más útil
-// que ocultarlos tras agrupaciones complejas, que requerirían clicks adicionales para desplegar detalles.
-// La UI está diseñada para ser scaneada rápidamente, con imágenes claras y etiquetas de colores.
+// Se ha refactorizado la vista para priorizar la agrupación por sujetos, reduciendo
+// repeticiones visuales y saturación de datos, permitiendo una rápida identificación de las
+// personas que transitan y proporcionando un panel lateral para el detalle individual y
+// la trazabilidad cuando sea necesario. Se mantiene también una pestaña secundaria
+// de eventos individuales para una vista estrictamente cronológica.
 
 export default function EventsPage() {
   const queryClient = useQueryClient();
@@ -102,18 +103,29 @@ export default function EventsPage() {
   });
 
   const handleDelete = () => {
-    if (selectedEvent && window.confirm('¿Estás seguro de que quieres eliminar este evento?')) {
+    if (selectedEvent && window.confirm('¿Estás seguro de que quieres eliminar este evento individual? Esta acción no se puede deshacer.')) {
       deleteMutation.mutate(selectedEvent.id);
     }
   };
 
   const handleUpdateSubject = () => {
+    // If selectedEvent is set, we are editing a single event
     if (selectedEvent && selectedPersonaId) {
       updateSubjectMutation.mutate({
         id: selectedEvent.id,
         data: {
           assigned_persona_id: selectedPersonaId,
           final_label: 'identificado' // Defaulting to identified, but real logic might vary based on the persona
+        }
+      });
+    } else if (selectedSubject && selectedPersonaId) {
+      // If selectedSubject is set, we are editing the most recent event of a grouped subject to apply to the latest face
+      updateSubjectMutation.mutate({
+        id: selectedSubject.id,
+        data: {
+          assigned_persona_id: selectedPersonaId,
+          final_label: 'identificado',
+          subject_id: selectedSubject.subject_id
         }
       });
     }
@@ -135,13 +147,13 @@ export default function EventsPage() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex bg-[#111111] border border-white/5 rounded-xl p-1">
             <button
-              onClick={() => { setViewMode('grouped'); setPage(1); setSelectedSubject(null); }}
+              onClick={() => { setViewMode('grouped'); setPage(1); setSubjectPage(1); setSelectedSubject(null); }}
               className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${viewMode === 'grouped' ? 'bg-emerald-500 text-black' : 'text-zinc-500 hover:text-white'}`}
             >
               Sujetos
             </button>
             <button
-              onClick={() => { setViewMode('list'); setPage(1); setSelectedSubject(null); }}
+              onClick={() => { setViewMode('list'); setPage(1); setSubjectPage(1); setSelectedSubject(null); }}
               className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${viewMode === 'list' ? 'bg-emerald-500 text-black' : 'text-zinc-500 hover:text-white'}`}
             >
               Eventos
@@ -198,14 +210,19 @@ export default function EventsPage() {
                   <div className="absolute top-3 left-3 flex flex-col gap-1">
                     <span className={`text-[9px] font-bold uppercase px-2 py-1 rounded-md backdrop-blur-md ${event.userType === PersonaTipo.LADRON ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
                         event.userType === PersonaTipo.SOCIO ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                          event.userType === 'movimiento' ? 'bg-amber-500/10 text-amber-400' :
-                            'bg-white/10 text-white border border-white/20'
+                          event.userType === 'movimiento' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' :
+                            'bg-black/50 text-white border border-white/10'
                       }`}>
-                      {event.userType === 'movimiento' ? 'Movimiento' : PersonaTipoLabels[event.userType as typeof PersonaTipo[keyof typeof PersonaTipo]]}
+                      {event.userType === 'movimiento' ? 'Movimiento' : (PersonaTipoLabels[event.userType as typeof PersonaTipo[keyof typeof PersonaTipo]] || 'Desconocido')}
                     </span>
+                    {event.risk_level && (
+                      <span className={`text-[9px] font-bold uppercase px-2 py-1 rounded-md backdrop-blur-md self-start ${event.risk_level === 'alto' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : event.risk_level === 'medio' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'}`}>
+                         Riesgo {event.risk_level}
+                      </span>
+                    )}
                     {isGrouped && event.eventCount > 1 && (
-                      <span className="text-[10px] font-bold text-white bg-black/50 px-2 py-1 rounded-md backdrop-blur-md self-start">
-                        {event.eventCount} eventos
+                      <span className="text-[10px] font-bold text-white bg-emerald-500/20 border border-emerald-500/30 px-2 py-1 rounded-md backdrop-blur-md self-start">
+                        {event.eventCount} detecciones
                       </span>
                     )}
                   </div>
@@ -485,6 +502,51 @@ export default function EventsPage() {
                   </div>
                 </div>
 
+                {isEditingSubject ? (
+                  <div className="space-y-4 bg-white/5 p-4 rounded-2xl border border-white/10">
+                    <h4 className="text-sm font-bold text-white mb-2">Asignar a Persona</h4>
+                    <select
+                      value={selectedPersonaId}
+                      onChange={(e) => setSelectedPersonaId(e.target.value)}
+                      className="w-full bg-[#111111] border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-emerald-500"
+                    >
+                      <option value="">Selecciona una persona...</option>
+                      {personasData?.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                    <div className="flex gap-2 mt-4">
+                      <button
+                        onClick={() => setIsEditingSubject(false)}
+                        className="flex-1 p-2 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-colors text-sm font-bold"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={handleUpdateSubject}
+                        disabled={!selectedPersonaId || updateSubjectMutation.isPending}
+                        className="flex-1 p-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 disabled:opacity-50 rounded-xl transition-colors text-sm font-bold flex items-center justify-center gap-2"
+                      >
+                        {updateSubjectMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        Guardar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Acciones de Sujeto</h4>
+                    <div className="grid grid-cols-1 gap-3">
+                      <button
+                        onClick={() => setIsEditingSubject(true)}
+                        className="flex items-center justify-center gap-2 p-3 bg-white/5 hover:bg-white/10 text-white text-xs font-bold rounded-xl transition-all"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        Editar Sujeto
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Historial de Detecciones</h4>
@@ -528,14 +590,15 @@ export default function EventsPage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (window.confirm('¿Estás seguro de que quieres eliminar este evento?')) {
+                                if (window.confirm('¿Estás seguro de que quieres eliminar este evento individual? Esta acción no se puede deshacer.')) {
                                   deleteMutation.mutate(event.id);
                                 }
                               }}
-                              className="p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg text-red-400 transition-colors"
-                              title="Eliminar evento"
+                              className="flex items-center gap-1 p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg text-red-400 transition-colors"
+                              title="Eliminar evento individual"
                             >
                               <Trash2 className="w-3 h-3" />
+                              <span className="text-[10px] font-bold">Eliminar</span>
                             </button>
                           </div>
                         </div>

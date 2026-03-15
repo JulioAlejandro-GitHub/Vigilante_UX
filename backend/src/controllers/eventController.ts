@@ -54,9 +54,13 @@ export const getEventsGrouped = async (req: Request, res: Response) => {
           rf.final_label as userType,
           rf.best_similarity as confidence,
           COALESCE(rf.face_preview_url, rf.face_image_url) as thumbnailUrl,
+          rf.face_preview_url as previewUrl,
+          rf.face_image_url as cropUrl,
           p.nombre as persona_name,
           p.tipo as persona_tipo,
           oi.display_label as oi_label,
+          oi.risk_level as risk_level,
+          oi.times_seen as times_seen,
           rf.assigned_persona_id as persona_id,
           rf.observed_identity_id as oi_id,
           CASE
@@ -88,9 +92,13 @@ export const getEventsGrouped = async (req: Request, res: Response) => {
         rf_latest.userType,
         rf_latest.confidence,
         rf_latest.thumbnailUrl,
+        rf_latest.previewUrl,
+        rf_latest.cropUrl,
         rf_latest.persona_name as name,
         rf_latest.persona_tipo,
         rf_latest.oi_label,
+        rf_latest.risk_level,
+        rf_latest.times_seen,
         rf_latest.persona_id,
         rf_latest.oi_id
       FROM (
@@ -219,19 +227,46 @@ export const getEvents = async (req: Request, res: Response) => {
 export const updateEventSubject = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { assigned_persona_id, final_label } = req.body;
+    const { assigned_persona_id, final_label, subject_id } = req.body;
 
     if (!assigned_persona_id) {
        return res.status(400).json({ error: 'assigned_persona_id is required' });
     }
 
-    const [result] = await pool.query<ResultSetHeader>(
-      'UPDATE recognition_face SET assigned_persona_id = ?, final_label = ?, assigned_status = ? WHERE recognition_face_id = ?',
-      [assigned_persona_id, final_label || 'identificado', 'manual_asignado', id]
-    );
+    let result: ResultSetHeader;
+
+    if (subject_id) {
+        // Group edit: The subject_id format is 'oi_123' or 'persona_456' or 'face_789'
+        const isOi = subject_id.startsWith('oi_');
+        const isPersona = subject_id.startsWith('persona_');
+        const rawId = parseInt(subject_id.split('_')[1], 10);
+
+        if (isOi) {
+            [result] = await pool.query<ResultSetHeader>(
+                'UPDATE recognition_face SET assigned_persona_id = ?, final_label = ?, assigned_status = ? WHERE observed_identity_id = ? AND assigned_persona_id IS NULL',
+                [assigned_persona_id, final_label || 'identificado', 'manual_asignado', rawId]
+            );
+        } else if (isPersona) {
+             [result] = await pool.query<ResultSetHeader>(
+                'UPDATE recognition_face SET assigned_persona_id = ?, final_label = ?, assigned_status = ? WHERE assigned_persona_id = ?',
+                [assigned_persona_id, final_label || 'identificado', 'manual_asignado', rawId]
+            );
+        } else {
+             [result] = await pool.query<ResultSetHeader>(
+                'UPDATE recognition_face SET assigned_persona_id = ?, final_label = ?, assigned_status = ? WHERE recognition_face_id = ?',
+                [assigned_persona_id, final_label || 'identificado', 'manual_asignado', rawId]
+            );
+        }
+    } else {
+        // Single edit
+        [result] = await pool.query<ResultSetHeader>(
+          'UPDATE recognition_face SET assigned_persona_id = ?, final_label = ?, assigned_status = ? WHERE recognition_face_id = ?',
+          [assigned_persona_id, final_label || 'identificado', 'manual_asignado', id]
+        );
+    }
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Evento no encontrado' });
+      return res.status(404).json({ error: 'Evento no encontrado o ya asignado' });
     }
 
     res.json({ success: true });
